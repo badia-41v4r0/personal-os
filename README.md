@@ -217,6 +217,89 @@ docker image rm $(docker images --format '{{.Repository}}:{{.Tag}}' | grep '^<in
 Más detalles (móvil con Tailscale, copias de seguridad, varias instalaciones en el mismo PC) en
 [docs/instalacion.md](docs/instalacion.md).
 
+## Windows con WSL2 (sin probar)
+
+> **Aviso:** esta forma de instalarlo **no se ha probado**. En teoría funciona porque todo corre dentro de un Linux de
+> verdad (WSL2), pero puede que encuentres problemas. Si lo pruebas, cuéntanos cómo te ha ido en una issue.
+
+El Personal OS necesita Linux: sockets Unix, systemd y Docker nativo. En Windows no funciona directamente, pero sí
+dentro de **WSL2**, que ejecuta una distribución Linux completa. La idea es instalarlo todo *dentro* de Ubuntu (WSL) y
+abrir el panel desde el navegador de Windows.
+
+### 1. Instala WSL2 con Ubuntu
+
+Requisitos: Windows 10 (22H2) o Windows 11, con la virtualización activada en la BIOS (casi siempre lo está).
+
+Abre **PowerShell como administrador** y ejecuta:
+
+```powershell
+wsl --install -d Ubuntu-24.04
+```
+
+Reinicia si te lo pide. Al abrir «Ubuntu» por primera vez, crea tu usuario y contraseña de Linux.
+
+### 2. Activa systemd en Ubuntu
+
+En la terminal de Ubuntu, comprueba si ya está activo (en las instalaciones recientes suele estarlo):
+
+```bash
+systemctl --user status >/dev/null && echo "systemd activo"
+```
+
+Si no lo está, edita `/etc/wsl.conf`:
+
+```bash
+sudo nano /etc/wsl.conf
+```
+
+y deja estas líneas:
+
+```ini
+[boot]
+systemd=true
+```
+
+Después, en **PowerShell**: `wsl --shutdown`, y vuelve a abrir Ubuntu.
+
+### 3. Instala Docker dentro de Ubuntu
+
+Usa Docker **dentro de WSL**, no Docker Desktop. El Host Agent monta sockets Unix en los contenedores, y eso no cruza
+bien la frontera entre Windows y la máquina de Docker Desktop. Si ya tienes Docker Desktop, desactiva su integración
+con esta distribución (Docker Desktop → Settings → Resources → WSL integration) para no tener dos Docker a la vez.
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+```
+
+Cierra Ubuntu, vuelve a abrirlo y comprueba con `docker run --rm hello-world`.
+
+### 4. Sigue la instalación normal, dentro de Ubuntu
+
+Desde aquí, los [pasos 2 a 9 de la instalación](#2-instala-el-resto-de-requisitos) son los mismos que en Linux, todos en
+la terminal de Ubuntu. Dos cosas importantes:
+
+- **Clona el proyecto dentro de Linux** (por ejemplo en `~/personal-os`), **no** en `/mnt/c/...`. En el disco de
+  Windows los permisos no funcionan bien (los secretos tienen que ser 600) y todo va mucho más lento.
+- Instala las CLI de IA (`claude`, `codex`, `opencode`) también dentro de Ubuntu.
+
+### 5. Abre el panel desde Windows
+
+WSL2 redirige `localhost` a Windows, así que en el navegador de Windows abre `http://127.0.0.1:8770` (o el puerto que te
+indicó el instalador).
+
+### Lo que es distinto en Windows
+
+| Tema | Qué pasa |
+|---|---|
+| WSL se apaga | Windows puede apagar Ubuntu cuando cierras todas sus terminales, y con él el panel. Si pasa, deja una terminal de Ubuntu abierta o ejecuta `wsl` al iniciar sesión en Windows. `sudo loginctl enable-linger $USER` también ayuda |
+| Voz en el PC | No recomendado: el micrófono y los altavoces de Windows no llegan fácilmente a WSL. Deja el módulo Voz desactivado |
+| Monitor | Enseña los recursos de la máquina de WSL (la memoria y CPU que Windows le da), no los de todo el PC |
+| Memoria | WSL usa como máximo la mitad de la RAM. Si se queda corto, súbelo en `%UserProfile%\.wslconfig` (`[wsl2]` → `memory=8GB`) |
+| Móvil con Tailscale | Instala Tailscale **dentro de Ubuntu** (no en Windows) para usar `tailscale serve`, como en Linux |
+| Obsidian | Si quieres abrir la vault con Obsidian para Windows, está en `\\wsl$\Ubuntu-24.04\home\<tu-usuario>\personal-os\Jarvis-Vault` |
+
 ## Documentación
 
 - [Instalación](docs/instalacion.md): requisitos, opciones, móvil con Tailscale, actualizar y desinstalar.
@@ -253,8 +336,9 @@ quieres para un uso comercial, escríbele. Para contribuir, mira [CONTRIBUTING.m
 
 ## Estado
 
-Proyecto personal publicado tal cual. Funciona en Linux. En Docker Desktop (Mac o Windows) el panel podría funcionar,
-pero el monitor del PC, la voz y los ordenadores virtuales no funcionarían. En Linux, los ordenadores virtuales están
-incluidos y se instalan con `bin/pos instalar` (salvo con `--sin-ordenadores`). Documentación e interfaz en español.
+Proyecto personal publicado tal cual. Funciona en Linux, donde los ordenadores virtuales están incluidos y se instalan
+con `bin/pos instalar` (salvo con `--sin-ordenadores`). En Windows puede funcionar dentro de WSL2
+([instrucciones](#windows-con-wsl2-sin-probar), sin probar). En Mac o con Docker Desktop no funciona: el Host Agent necesita
+Linux. Documentación e interfaz en español.
 
 Usar tu suscripción de un proveedor de IA con este proyecto es responsabilidad tuya: revisa sus condiciones de uso.

@@ -2,6 +2,8 @@
 
 ## Requisitos
 
+Solo Linux. En Windows, dentro de WSL2: ver [README → Windows con WSL2](../README.md#windows-con-wsl2-sin-probar) (sin probar).
+
 | Obligatorio | Para qué |
 |---|---|
 | Linux con systemd (sesión de usuario) | Servicios y temporizadores |
