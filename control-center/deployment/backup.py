@@ -1,6 +1,6 @@
 """Copia de seguridad del Control Center (lo que no está en ningún otro sitio).
 
-Con CC_DB_URL: pg_dump del contenedor pos-db, comprobado con pg_restore --list. Sin ella: copia en caliente de
+Con CC_DB_URL: pg_dump del contenedor <instancia>-db, comprobado con pg_restore --list. Sin ella: copia en caliente de
 data/control-center/cc.db con la API de backup de SQLite. Las dos son consistentes aunque el panel esté escribiendo.
 Guarda también la auditoría del Host Agent y las claves de los avisos. Rota a 14 copias.
 La vault, el repo y el estado de Jarvis no se copian aquí (Syncthing, git y backlog del disco externo).
@@ -25,7 +25,7 @@ import os
 DATA = Path(os.environ.get("CC_DATA_DIR", str(ROOT / "data/control-center")))
 
 
-PG_CONTAINER = "pos-db"
+PG_CONTAINER = f"{os.environ.get('POS_INSTANCE', 'jarvis')}-db"  # contenedor de PostgreSQL de esta instancia
 PG_ARGS = ["-U", "jarvis", "-d", "personal_os"]
 
 

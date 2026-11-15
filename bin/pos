@@ -116,7 +116,8 @@ instalar() {
   ok "Instancia «$inst» · panel en 127.0.0.1:$port · zona $tz"
 
   echo "== Configuración y secretos (archivos 600, fuera de git)"
-  hacer mkdir -p "$ROOT/data/control-center" "$ROOT/data/config" "$ROOT/archivos" "$ROOT/secrets"
+  # Todo lo que monta docker-compose: si no existe, Docker lo crearía como root
+  hacer mkdir -p "$ROOT/data/control-center" "$ROOT/data/config" "$ROOT/data/home" "$ROOT/data/voz" "$ROOT/archivos" "$ROOT/secrets" "$ROOT/repos"
   [ "$SIMULAR" = 1 ] || chmod 700 "$ROOT/data" "$ROOT/data/control-center" "$ROOT/data/config" "$ROOT/archivos" "$ROOT/secrets"
   local ENVF="$ROOT/.env" SEC="$ROOT/data/control-center/secrets.env"
   poner_env "$ENVF" POS_INSTANCE "$inst"

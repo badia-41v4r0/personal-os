@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Restaura la base del Control Center desde una copia de backup.py. No toca a Jarvis.
+# Restaura la base del panel desde una copia de backup.py.
 # Uso: control-center/deployment/restaurar.sh data/control-center/backups/AAAAMMDD-HHMMSS
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -14,13 +14,13 @@ read -r -p "Se sustituirá la base actual del panel (se guarda antes una copia d
 [[ "$r" =~ ^[sS]$ ]] || { echo "Cancelado."; exit 0; }
 set -a; . "$ROOT/data/control-center/secrets.env"; set +a
 "$ROOT/control-center/backend/.venv/bin/python" "$ROOT/control-center/deployment/backup.py" --dest "$ROOT/data/control-center/backups/antes-de-restaurar" --keep 5
-systemctl --user stop jarvis-cc-backend
+systemctl --user stop "${POS_INSTANCE:-jarvis}-cc-backend"
 if [ -f "$SRC/personal_os.dump" ]; then
-  docker exec -i pos-db pg_restore -U jarvis -d personal_os --clean --if-exists < "$SRC/personal_os.dump"
+  docker exec -i "${POS_INSTANCE:-jarvis}-db" pg_restore -U jarvis -d personal_os --clean --if-exists < "$SRC/personal_os.dump"
 else
   rm -f "$ROOT/data/control-center/cc.db-wal" "$ROOT/data/control-center/cc.db-shm"
   install -m 600 "$SRC/cc.db" "$ROOT/data/control-center/cc.db"
 fi
-systemctl --user start jarvis-cc-backend   # aplica las migraciones pendientes al arrancar (ExecStartPre)
+systemctl --user start "${POS_INSTANCE:-jarvis}-cc-backend"   # aplica las migraciones pendientes al arrancar (ExecStartPre)
 sleep 4
 curl -sf http://127.0.0.1:8770/api/v1/health && echo && echo "Restaurado."

@@ -6,7 +6,11 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 D="$ROOT/data/control-center"
 SECRETS="$D/secrets.env"
 PY="$ROOT/control-center/backend/.venv/bin/python"
-PORT=55433
+env_de() { sed -n "s/^$1=//p" "$ROOT/.env" 2>/dev/null | tail -1; }
+INST="$(env_de POS_INSTANCE)"; INST="${INST:-jarvis}"
+PORT="$(env_de POS_DB_PORT)"; PORT="${PORT:-55433}"
+PANEL="$(env_de POS_PORT)"; PANEL="${PANEL:-8770}"
+DB="$INST-db"
 
 grep -q '^CC_DB_URL=' "$SECRETS" && { echo "El panel ya usa PostgreSQL."; exit 0; }
 
@@ -20,27 +24,27 @@ URL="postgresql+psycopg://jarvis:${PW}@127.0.0.1:${PORT}/personal_os"
 mkdir -p -m 700 "$ROOT/data/postgres"
 (cd "$ROOT" && docker compose --profile pos up -d pos-db)
 for _ in $(seq 1 60); do
-  docker exec pos-db pg_isready -q -U jarvis -d personal_os && break
+  docker exec "$DB" pg_isready -q -U jarvis -d personal_os && break
   sleep 1
 done
-docker exec pos-db pg_isready -q -U jarvis -d personal_os || { echo "PostgreSQL no arranca"; exit 1; }
-docker exec pos-db psql -q -U jarvis -d personal_os -c 'CREATE EXTENSION IF NOT EXISTS vector'
+docker exec "$DB" pg_isready -q -U jarvis -d personal_os || { echo "PostgreSQL no arranca"; exit 1; }
+docker exec "$DB" psql -q -U jarvis -d personal_os -c 'CREATE EXTENSION IF NOT EXISTS vector'
 
 "$PY" "$ROOT/control-center/deployment/backup.py"
-systemctl --user stop jarvis-cc-backend
+systemctl --user stop "$INST-cc-backend"
 volver() {
   echo "Falló: el panel sigue en SQLite." >&2
   sed -i '/^CC_DB_URL=/d' "$SECRETS"
-  systemctl --user start jarvis-cc-backend
+  systemctl --user start "$INST-cc-backend"
 }
 trap volver ERR
 
 (cd "$ROOT/control-center/backend" && .venv/bin/alembic upgrade head)
 CC_DB_URL="$URL" "$PY" "$ROOT/control-center/deployment/migrar_a_postgres.py"
 echo "CC_DB_URL=$URL" >> "$SECRETS"
-systemctl --user start jarvis-cc-backend
+systemctl --user start "$INST-cc-backend"
 for _ in $(seq 1 30); do
-  curl -sf http://127.0.0.1:8770/api/v1/health | grep -q '"database":"ok"' && { trap - ERR; echo "Panel en PostgreSQL."; exit 0; }
+  curl -sf "http://127.0.0.1:$PANEL/api/v1/health" | grep -q '"database":"ok"' && { trap - ERR; echo "Panel en PostgreSQL."; exit 0; }
   sleep 1
 done
 false
