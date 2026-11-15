@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { post, api } from "@/lib/api";
 import { useAct } from "./form";
+import { asistente } from "@/lib/asistente";
 
 export type Slot = "manana" | "noche";
 export type CheckInData = { mood: number | null; energy: number | null; sleep_h: number | null; intention: string; note: string } | null;
@@ -112,7 +113,7 @@ function Formulario({ slot, inicial, habitos, onDone }: { slot: Slot; inicial: C
         {slot === "noche" && (
           <Button size="sm" variant="outline" disabled={act.busy || vacio} onClick={() => void guardar(true)}>Guardar y cerrar el día</Button>
         )}
-        {cerrado && <span className="text-xs text-success">Cierre encargado: Jarvis escribirá el diario.</span>}
+        {cerrado && <span className="text-xs text-success">Cierre encargado: {asistente()} escribirá el diario.</span>}
       </div>
       {act.ErrorBox}
       {toggle.ErrorBox}

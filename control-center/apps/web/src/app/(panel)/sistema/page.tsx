@@ -14,15 +14,16 @@ import { bytes, clock, duration, timeAgo } from "@/lib/format";
 import { useApi, type BusEvent } from "@/lib/hooks";
 import type { Container, Health, Metrics, TranscriptItem, Unit } from "@/lib/types";
 import { unitLevel } from "@/lib/units";
+import { asistente } from "@/lib/asistente";
 
 type MainState = { current_run: string | null; queued: number; tmux: boolean | null };
 type Run = { id: string; status: string };
 
-const EVENT_LABEL: Record<string, string> = {
+const EVENT_LABEL = (): Record<string, string> => ({
   "backend.started": "Backend arrancado",
   "run.queued": "Mensaje del panel en cola",
-  "run.started": "Mensaje enviado a Jarvis",
-  "run.finished": "Jarvis terminó de responder",
+  "run.started": `Mensaje enviado a ${asistente()}`,
+  "run.finished": `${asistente()} terminó de responder`,
   "run.interrupted": "Ejecución interrumpida",
   "session.created": "Conversación nueva",
   "agent.created": "Agente creado",
@@ -42,7 +43,7 @@ const EVENT_LABEL: Record<string, string> = {
   "memory.saved": "Nota editada en el panel",
   "tasks.changed": "Tarea marcada desde el panel",
   "claude.usage": "Uso de Claude",
-};
+});
 // Eventos internos que no aportan en el timeline
 const HIDDEN = new Set(["chat.updated", "claude.usage", "vc.running", "vc.stopped", "vc.registered"]);
 
@@ -101,7 +102,7 @@ export default function Dashboard() {
     <>
       <PageHeader
         title="Sistema"
-        description="Estado de Jarvis y del PC en tiempo real."
+        description={`Estado de ${asistente()} y del PC en tiempo real.`}
         actions={
           <div className="flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs">
             <StatusDot level={overall} pulse />
@@ -114,7 +115,7 @@ export default function Dashboard() {
         <Card>
           <CardHeader><CardTitle>Componentes</CardTitle></CardHeader>
           <CardContent className="divide-y divide-border">
-            <StatusRow label="Jarvis (contenedor)" level={lvl(jarvisContainer ? jarvisContainer.State === "running" : containers.data ? false : null)} detail={jarvisContainer?.Status} />
+            <StatusRow label={`${asistente()} (contenedor)`} level={lvl(jarvisContainer ? jarvisContainer.State === "running" : containers.data ? false : null)} detail={jarvisContainer?.Status} />
             <StatusRow label="Claude Code (tmux)" level={lvl(state.data?.tmux)} detail={state.data?.current_run ? "trabajando" : state.data?.tmux ? "en espera" : undefined} />
             <StatusRow label="Telegram" level={lastTelegram ? "ok" : "unknown"} detail={lastTelegram ? `último: ${timeAgo(lastTelegram.ts)}` : "sin mensajes en esta sesión"} />
             <StatusRow label="Backend" level={lvl(health.data?.backend === "ok")} />
@@ -127,7 +128,7 @@ export default function Dashboard() {
           <CardHeader><CardTitle>Actividad</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
             {[
-              ["Agentes activos", state.data?.tmux ? "1" : "0", "Jarvis"],
+              ["Agentes activos", state.data?.tmux ? "1" : "0", `${asistente()}`],
               ["Ejecuciones en curso", String(running), "del panel"],
               ["Servicios con fallos", String(failed.length), failed.map((f) => f.Id).join(", ") || "ninguno"],
               ["Ordenadores virtuales", String(vcsList.data?.filter((v) => v.live?.state === "running").length ?? "—"), `${vcsList.data?.length ?? 0} creados`],
@@ -181,7 +182,7 @@ export default function Dashboard() {
               {recentMessages.map((m) => (
                 <li key={m.uuid} className="flex gap-3 py-2 text-sm">
                   <span className="w-16 shrink-0 text-xs text-muted-foreground">{clock(m.ts).split(" ")[1] ?? ""}</span>
-                  <span className="w-16 shrink-0 text-xs text-muted-foreground">{m.role === "user" ? "Tú" : "Jarvis"}</span>
+                  <span className="w-16 shrink-0 text-xs text-muted-foreground">{m.role === "user" ? "Tú" : `${asistente()}`}</span>
                   <span className="line-clamp-2 min-w-0 flex-1">{m.text}</span>
                 </li>
               ))}
@@ -198,7 +199,7 @@ export default function Dashboard() {
               {activity.map((e) => (
                 <li key={e.id} className="text-sm">
                   <span className="absolute -left-[4.5px] mt-1.5 size-2 rounded-full bg-primary/60" />
-                  <div>{EVENT_LABEL[e.type] ?? e.type}{typeof e.payload.title === "string" ? `: ${e.payload.title}` : ""}</div>
+                  <div>{EVENT_LABEL()[e.type] ?? e.type}{typeof e.payload.title === "string" ? `: ${e.payload.title}` : ""}</div>
                   <div className="text-[11px] text-muted-foreground">
                     {timeAgo(e.ts)}
                     {typeof e.payload.status === "string" ? ` · ${e.payload.status}` : ""}
@@ -226,7 +227,7 @@ export default function Dashboard() {
             <span className="font-mono text-lg font-semibold tabular-nums">{appr.data?.pendientes.length ?? "—"}</span>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            {appr.data ? (appr.data.pendientes.length ? "Propuestas de Jarvis esperando tu revisión" : "Nada pendiente") : "Cargando…"}
+            {appr.data ? (appr.data.pendientes.length ? `Propuestas de ${asistente()} esperando tu revisión` : "Nada pendiente") : "Cargando…"}
             {queues.data && ` · ${queues.data.reduce((n, q) => n + q.pendientes, 0)} tareas en cola`}
           </p>
         </Link>

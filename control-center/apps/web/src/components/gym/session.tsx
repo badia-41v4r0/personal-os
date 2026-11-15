@@ -13,6 +13,7 @@ import {
   AccionBadge, descanso, errMsg, Evidencia, type ExIndex, kg, Msg, musc, type Plan, type PlanEx, type Propuesta, selectCls, SESIONES,
   serie, TargetView, today,
 } from "./common";
+import { asistente } from "@/lib/asistente";
 
 /** Ejercicios de una sesión planificada o recomendada, con objetivo, último, mejor y por qué. */
 export function SessionExercises({ ejercicios, compact = false }: { ejercicios: PlanEx[]; compact?: boolean }) {
@@ -203,7 +204,7 @@ export function SessionActions({ propuesta, plan, onChanged, verHref }: { propue
         <Link href="/gym/?tab=training&editar=1" className={buttonVariants({ size: "sm", variant: "outline" })}><Pencil /> Modificar</Link>
         <Button size="sm" variant="outline" aria-expanded={modo === "sustituir"} onClick={() => setModo(modo === "sustituir" ? "" : "sustituir")}><Repeat /> Sustituir</Button>
         <Button size="sm" variant="outline" aria-expanded={modo === "posponer"} onClick={() => setModo(modo === "posponer" ? "" : "posponer")}><CalendarClock /> Posponer</Button>
-        <Button size="sm" variant="ghost" disabled={busy} onClick={preguntar}><MessageSquare /> Preguntar a Jarvis</Button>
+        <Button size="sm" variant="ghost" disabled={busy} onClick={preguntar}><MessageSquare /> Preguntar a {asistente()}</Button>
       </div>
       {modo === "posponer" && (
         <div className="flex flex-wrap items-center gap-2">

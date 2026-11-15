@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TaskCheck } from "@/components/cc/task-check";
 import { UnifiedCalendar } from "@/components/cc/unified-calendar";
 import { useApi } from "@/lib/hooks";
+import { asistente } from "@/lib/asistente";
 
 type Evento = { id: string; calendario: string; titulo: string; lugar: string; dia: string; hasta: string; inicio: string | null; fin: string | null; de_jarvis: boolean };
 type Tarea = { texto: string; fecha: string | null; area: string; atrasada?: boolean };
@@ -92,7 +93,7 @@ export default function AgendaPage() {
                     </ul>
                   </div>
                 ))}
-                <p className="text-[11px] text-muted-foreground">Contenido externo: se muestra como dato. Para leer o responder, pídeselo a Jarvis (solo borradores).</p>
+                <p className="text-[11px] text-muted-foreground">Contenido externo: se muestra como dato. Para leer o responder, pídeselo a {asistente()} (solo borradores).</p>
               </CardContent>
             </Card>
 

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { post } from "@/lib/api";
+import { asistente } from "@/lib/asistente";
 
 export type SessionSummary = {
   id: string; kind: "main" | "independent"; name: string; description: string; agent_id: string | null; model: string;
@@ -48,7 +49,7 @@ export function NewSessionDialog({ onCreated, preset }: { onCreated: (s: Session
           <form onSubmit={submit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>Nueva conversación independiente</DialogTitle>
-              <DialogDescription>No comparte contexto, permisos ni vault con Jarvis. Trabaja en su propia carpeta, en un contenedor aislado sin terminal.</DialogDescription>
+              <DialogDescription>No comparte contexto, permisos ni vault con {asistente()}. Trabaja en su propia carpeta, en un contenedor aislado sin terminal.</DialogDescription>
             </DialogHeader>
             <div className="space-y-1.5"><Label htmlFor="ns-name">Nombre</Label><Input id="ns-name" required maxLength={120} value={f.name} onChange={(e) => set("name", e.target.value)} /></div>
             <div className="space-y-1.5"><Label htmlFor="ns-desc">Descripción</Label><Input id="ns-desc" maxLength={1000} value={f.description} onChange={(e) => set("description", e.target.value)} /></div>

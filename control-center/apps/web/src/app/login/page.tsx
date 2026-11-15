@@ -37,7 +37,7 @@ export default function LoginPage() {
           <div className="mb-4 grid size-9 place-items-center rounded-lg bg-primary/15 text-primary">
             <Lock className="size-4" />
           </div>
-          <h1 className="text-lg font-semibold tracking-tight">Jarvis Control Center</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Personal OS</h1>
           <p className="text-sm text-muted-foreground">Acceso privado.</p>
         </div>
         <div className="space-y-2">

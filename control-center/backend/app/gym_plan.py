@@ -35,6 +35,7 @@ from .security import Principal, current_principal, require_admin
 sys.path.insert(0, str(ROOT / "collectors"))
 import gym_coach as gc  # noqa: E402
 import gym_stats  # noqa: E402
+from .marca import asistente
 
 router = APIRouter(prefix="/api/v1/gym", dependencies=[Depends(current_principal)])
 COACH_MD = ROOT / "control-center/gym/coach.md"
@@ -1159,7 +1160,7 @@ def coach_session(db: Session, p: Principal, crear: bool = True) -> ChatSession 
         return None
     sid = str(uuid.uuid4())
     s = ChatSession(id=sid, kind="independent", name="Coach del gym", agent_id=None, model="sonnet",
-                    description="Entrenador de Jarvis: consulta tus datos del gym con herramientas y propone cambios que tú apruebas",
+                    description=f"Entrenador de {asistente()}: consulta tus datos del gym con herramientas y propone cambios que tú apruebas",
                     workdir=f"data/sesiones/{sid}/trabajo",
                     permissions={"level": "read", "internet": False, "vault": True, "gym": True, "system_prompt": coach_prompt(), **coach_scope(),
                                  "minutes": 15, "vc": {"enabled": False, "profile": "terminal", "vc_id": None}, "subagents": False})

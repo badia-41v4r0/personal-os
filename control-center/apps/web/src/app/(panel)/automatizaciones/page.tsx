@@ -13,6 +13,7 @@ import { api, post } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import type { Unit } from "@/lib/types";
 import { unitLevel } from "@/lib/units";
+import { asistente } from "@/lib/asistente";
 
 type Timer = { id: string; titulo: string; detalle: string; usa_modelo: boolean; dias: string[]; horas: string[]; calendario: string[]; activo: boolean; proximo: string; ultimo: string; resultado: string; ejecutando: boolean };
 
@@ -80,7 +81,7 @@ export default function AutomatizacionesPage() {
   const colas = services.data?.filter((u) => u.scope === "user" && u.Id.endsWith(".path")) ?? [];
   return (
     <>
-      <PageHeader title="Automatizaciones" description="Lo que Jarvis hace solo. Cambia cuándo se ejecuta cada cosa, apágala o lánzala ahora." />
+      <PageHeader title="Automatizaciones" description={`Lo que ${asistente()} hace solo. Cambia cuándo se ejecuta cada cosa, apágala o lánzala ahora.`} />
       {timers.error && <ErrorState message={timers.error} />}
       {timers.loading && <Loading rows={6} />}
       <div className="grid gap-4 lg:grid-cols-2">

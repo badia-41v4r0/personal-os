@@ -11,6 +11,7 @@ import {
   day, EstadoBadge, Evidencia, kg, MUSCULO, NivelBadge, num, type Obs, type Plan, type Propuesta, Stat,
 } from "./common";
 import { PlanStateBadge, SessionActions, SessionExercises } from "./session";
+import { asistente } from "@/lib/asistente";
 
 type Overview = {
   hoy: string;
@@ -59,7 +60,7 @@ export function RecommendedCard({ compact = true, onChanged }: { compact?: boole
           Molestias: {prop.molestias.map((m) => `${m.zona} (${m.fuente})`).join(", ")}. Esos ejercicios van sin fallo y sin subir carga.</p>
       )}
       <SessionExercises ejercicios={s.ejercicios} compact={compact} />
-      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Jarvis: </span>{plan ? plan.justificacion : prop?.justificacion}</p>
+      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">{asistente()}: </span>{plan ? plan.justificacion : prop?.justificacion}</p>
       {prop && !plan && <p className="text-[11px] text-muted-foreground">Duración: {prop.duracion_criterio}.</p>}
       <SessionActions propuesta={prop} plan={plan} onChanged={() => { r.reload(); onChanged?.(); }} verHref={compact ? "/gym/?tab=training" : undefined} />
     </div>
@@ -98,7 +99,7 @@ export function OverviewTab() {
           <CardContent><RecommendedCard /></CardContent>
         </Card>
         <Card className="xl:col-span-2">
-          <CardHeader><CardTitle>Análisis de Jarvis</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Análisis de {asistente()}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {o.analisis.length === 0 && <Empty message="Aún no hay observaciones: hacen falta más sesiones." />}
             {[...alertas, ...resto].map((a) => (

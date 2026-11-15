@@ -63,6 +63,12 @@ def nombre_usuario() -> str:
     return (leer("perfil").get("nombre") or "").strip() or "el usuario"
 
 
+def asistente() -> str:
+    """Cómo ha llamado el usuario a su asistente (perfil → asistente). Por defecto, Jarvis."""
+    n = str(leer("perfil").get("asistente") or "").strip()
+    return n[:40] if n else "Jarvis"
+
+
 def areas() -> dict[str, str]:
     """id → etiqueta con emoji. «personal» existe siempre: es donde cae lo que no tiene área."""
     out = {}
@@ -76,12 +82,12 @@ def areas() -> dict[str, str]:
 def variables() -> dict[str, str]:
     """Lo que pueden usar las plantillas de instrucciones."""
     plat = leer("estudios").get("plataforma") or {}
-    return {"nombre": nombre_usuario(), "campus_nombre": str(plat.get("nombre") or "tu campus virtual"),
+    return {"nombre": nombre_usuario(), "asistente": asistente(), "campus_nombre": str(plat.get("nombre") or "tu campus virtual"),
             "campus_url": str(plat.get("url") or ""), "centro": str(plat.get("centro") or "tu universidad")}
 
 
 def render(texto: str) -> str:
-    """Rellena las plantillas de instrucciones: {{nombre}}, {{campus_nombre}}, {{campus_url}} y {{centro}}."""
+    """Rellena las plantillas de instrucciones: {{nombre}}, {{asistente}}, {{campus_nombre}}, {{campus_url}} y {{centro}}."""
     for k, v in variables().items():
         texto = texto.replace("{{" + k + "}}", v)
     return texto

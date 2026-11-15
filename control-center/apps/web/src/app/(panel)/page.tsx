@@ -10,6 +10,7 @@ import { usePanel } from "@/components/cc/shell";
 import { Empty, ErrorState, Loading } from "@/components/cc/states";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApi } from "@/lib/hooks";
+import { asistente } from "@/lib/asistente";
 
 type AgendaItem = { hora: string | null; fin: string | null; titulo: string; tipo: string };
 type Home = {
@@ -153,7 +154,7 @@ export default function Inicio() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="size-4 text-primary" />Insights de Jarvis</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="size-4 text-primary" />Insights de {asistente()}</CardTitle></CardHeader>
           <CardContent>
             {d.insights.length === 0 && <Empty message="Nada destacable ahora mismo." />}
             <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">

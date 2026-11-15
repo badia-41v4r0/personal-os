@@ -180,7 +180,7 @@ def escribir(plan: dict, desde: date):
             else:
                 filas.append(f"| {nombre} | — | — | — |")
         nuevo = ("## 🗓️ Plan diario (3 bloques de 2 h: 10:30, 12:30 y 16:00)\n\n"
-                 "> Generado por el planificador de Jarvis. Si te retrasas, pídele que lo recalcule.\n\n"
+                 f"> Generado por el planificador de {ajustes.asistente()}. Si te retrasas, pídele que lo recalcule.\n\n"
                  + "\n".join([cab, sep] + filas) + "\n"
                  + (f"\n> Sábado de estudio: {', '.join(horas(lunes + timedelta(days=5)))}.\n" if bloques_dia(lunes + timedelta(days=5)) else "")
                  + "\n")

@@ -42,7 +42,7 @@ export const AGENTS_TABS: NavItem[] = [
 export const NAV_MOBILE: NavItem[] = [
   { href: "/", label: "Inicio", icon: HomeIcon },
   { href: "/agenda/", label: "Agenda", icon: CalendarDays },
-  { href: "/chat/", label: "Jarvis", icon: MessagesSquare },
+  { href: "/chat/", label: "Asistente", icon: MessagesSquare },  // el texto real es el nombre del asistente (shell)
   { href: "/tasks/", label: "Tareas", icon: ListChecks },
 ];
 

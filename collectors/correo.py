@@ -245,7 +245,7 @@ def zoho_borrador(para, asunto, cuerpo, responder_a=None):
 
 
 def auth_zoho():
-    print("Configurar Zoho Mail para Jarvis (solo lectura + borradores).\n")
+    print(f"Configurar Zoho Mail para {ajustes.asistente()} (solo lectura + borradores).\n")
     dc = input("¿Dominio de tu cuenta Zoho? (eu / com / in) [eu]: ").strip() or "eu"
     print(f"\n1. Abre https://api-console.zoho.{dc} → Add Client → Self Client → Create.")
     print("2. En la pestaña Client Secret copia Client ID y Client Secret.")
@@ -290,7 +290,7 @@ def resumen(maximo=5):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Correo para Jarvis (leer y borradores)")
+    ap = argparse.ArgumentParser(description=f"Correo para {ajustes.asistente()} (leer y borradores)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("auth-zoho")
     r = sub.add_parser("recientes")

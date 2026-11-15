@@ -3,7 +3,7 @@
 Lo que NO tiene una sesión, por diseño:
 - Bash ni ningún intérprete: el contenedor necesita red para hablar con Claude y lleva el token en el entorno;
   con una terminal, un contenido malicioso podría intentar leerlo y sacarlo (mismo criterio que el ayudante).
-  Ejecutar comandos llegará con los ordenadores virtuales (M5), sin red ni token.
+  Para ejecutar comandos, el agente usa su ordenador virtual (vms.py), que no tiene ni red ni token.
 - La vault, salvo que se conceda (entera o solo las rutas de su apartado, siempre en solo lectura), ni nada de Jarvis
   (su home, sus secretos). La excepción son las rutinas programadas: escriben en Jarvis/, nunca en Sistema/.
 - Credenciales: solo CLAUDE_CODE_OAUTH_TOKEN, que se lee del .env en cada turno y se pasa por entorno

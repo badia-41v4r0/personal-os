@@ -24,6 +24,7 @@ from .config import ROOT, get_settings
 from .db import get_db, utcnow
 from .models import AgentDefinition, AgentRun, AgentVersion, ChatSession
 from .security import Principal, current_principal, require_admin
+from .marca import asistente
 
 router = APIRouter(prefix="/api/v1/agents", dependencies=[Depends(current_principal)])
 
@@ -65,13 +66,13 @@ def validate(spec: Spec) -> list[str]:
         errs.append("Execute solo es posible dentro de un ordenador virtual")
     if spec.target == "jarvis":
         if spec.level == "execute":
-            errs.append("Un subagente de Jarvis no puede tener execute")
+            errs.append(f"Un subagente de {asistente()} no puede tener execute")
         if spec.internet:
-            errs.append("Jarvis no tiene internet: un subagente suyo tampoco puede tenerlo (usa un agente del panel)")
+            errs.append(f"{asistente()} no tiene internet: un subagente suyo tampoco puede tenerlo (usa un agente del panel)")
         if spec.virtual_computer:
-            errs.append("Un subagente de Jarvis no puede usar ordenadores virtuales (usa un agente del panel)")
+            errs.append(f"Un subagente de {asistente()} no puede usar ordenadores virtuales (usa un agente del panel)")
         if spec.subagents:
-            errs.append("Un subagente de Jarvis no puede lanzar otros subagentes")
+            errs.append(f"Un subagente de {asistente()} no puede lanzar otros subagentes")
     return errs
 
 
@@ -242,13 +243,13 @@ def _out(db: Session, a: AgentDefinition, full: bool = False) -> dict:
          "virtual_computer": spec.get("virtual_computer", False), "subagents": spec.get("subagents", False),
          "version": a.current_version,
          "tools": tools_of(Spec(**{k: v for k, v in spec.items() if k in Spec.model_fields})) if spec else [],
-         "workdir": "/vault (solo lectura, como Jarvis)" if spec.get("target") == "jarvis" else "data/sesiones/<sesión>/trabajo",
+         "workdir": f"/vault (solo lectura, como {asistente()})" if spec.get("target") == "jarvis" else "data/sesiones/<sesión>/trabajo",
          "runs": runs, "last_run": last.isoformat() + "Z" if last else None,
          "updated_at": a.updated_at.isoformat() + "Z", "file": f"agent/.claude/agents/{a.id}.md" if spec.get("target") == "jarvis" else None}
     if full:
         d["spec"] = {k: v for k, v in spec.items() if k != "raw"}
         d["rendered"] = v.rendered if v else ""
-        d["apply_note"] = ("Se aplica cuando Jarvis empieza sesión (el /clear de las 7:00) o al reiniciar su sesión."
+        d["apply_note"] = (f"Se aplica cuando {asistente()} empieza sesión (el /clear de las 7:00) o al reiniciar su sesión."
                            if spec.get("target") == "jarvis" else "Se aplica en las sesiones nuevas que se lancen desde este agente.")
     return d
 
@@ -352,7 +353,7 @@ def activate(aid: str, body: ConfirmIn, p: Principal = Depends(require_admin), d
     if spec.target == "jarvis" and not body.confirm:
         # Acción sensible: cambia la configuración de Jarvis. El panel enseña el archivo y pide confirmación.
         return {"needs_confirm": True, "file": f"agent/.claude/agents/{aid}.md", "rendered": render(spec),
-                "note": "Jarvis lo cargará en su próxima sesión (el /clear de las 7:00)."}
+                "note": f"{asistente()} lo cargará en su próxima sesión (el /clear de las 7:00)."}
     if spec.target == "jarvis":
         _write_file(spec)
     a.status, a.updated_at = "active", utcnow()
@@ -446,7 +447,7 @@ def start_session(aid: str, body: StartIn, p: Principal = Depends(require_admin)
     a = _get(db, aid)
     spec = Spec(**{k: v for k, v in _current(db, a).spec.items() if k in Spec.model_fields})
     if spec.target != "panel":
-        raise HTTPException(422, "Los subagentes de Jarvis los usa Jarvis; para lanzar sesiones crea un agente del panel")
+        raise HTTPException(422, f"Los subagentes de {asistente()} los usa {asistente()}; para lanzar sesiones crea un agente del panel")
     if a.status != "active":
         raise HTTPException(409, "Activa el agente antes de usarlo")
     s = create_session(db, CreateIn(name=body.name or f"{spec.name} · {utcnow():%d/%m %H:%M}", description=spec.description[:1000],

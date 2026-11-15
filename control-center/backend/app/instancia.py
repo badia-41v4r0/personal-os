@@ -28,7 +28,7 @@ router = APIRouter(prefix="/api/v1/instancia", dependencies=[Depends(current_pri
 # Configuración editable desde el panel y por los agentes de onboarding, con su forma esperada.
 # Lo que no está aquí (secretos, tokens) no se puede leer ni escribir por esta vía.
 ESQUEMAS: dict[str, dict[str, type | tuple]] = {
-    "perfil": {"nombre": str, "nombre_completo": str, "idioma": str, "areas": list, "sobre_mi": str},
+    "perfil": {"nombre": str, "asistente": str, "nombre_completo": str, "idioma": str, "areas": list, "sobre_mi": str},
     "correo": {"cuentas": dict},
     "github": {"owner": str, "repos": dict},
     "estudios": {"plataforma": dict, "asignaturas": list, "disponibilidad": dict, "descansos": list, "fin": str, "criterio": str},
@@ -63,6 +63,8 @@ def validar(nombre: str, datos: Any) -> dict:
         if float(datos.get("limite_mensual_usd", 0)) < 0:
             raise ValueError("El límite de gasto no puede ser negativo")
     if nombre == "perfil":
+        if len(str(datos.get("asistente", ""))) > 40:
+            raise ValueError("El nombre del asistente puede tener como mucho 40 caracteres")
         for a in datos.get("areas", []):
             if not isinstance(a, dict) or not ajustes.NOMBRE_RE.match(str(a.get("id", ""))):
                 raise ValueError("Cada área necesita un id en minúsculas (letras, cifras, - o _)")
@@ -105,7 +107,7 @@ def onboarding_estado() -> dict:
 @router.get("")
 def instancia():
     perfil = ajustes.leer("perfil")
-    return {"nombre": perfil.get("nombre") or "", "idioma": perfil.get("idioma") or "es", "areas": ajustes.areas(),
+    return {"nombre": perfil.get("nombre") or "", "asistente": ajustes.asistente(), "idioma": perfil.get("idioma") or "es", "areas": ajustes.areas(),
             "modulos": modules.vista(), "onboarding": onboarding_estado()}
 
 

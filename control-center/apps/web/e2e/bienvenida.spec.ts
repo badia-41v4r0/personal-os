@@ -2,8 +2,9 @@ import { expect, test } from "@playwright/test";
 
 // Instalación nueva: bienvenida en tres pasos, menú por módulos y tarjeta de primera vez en un apartado.
 // Cambia la configuración: solo con CC_E2E_BIENVENIDA=1 y contra una instancia de PRUEBA recién creada.
-const USER = process.env.CC_E2E_USER ?? "prueba";
-const PASS = process.env.CC_E2E_PASS ?? "prueba-prueba-123";
+// Instancia recién instalada: entra con admin/admin y lo primero es cambiarlos.
+const USER = "ana";
+const PASS = "una frase bastante larga";
 test.skip(process.env.CC_E2E_BIENVENIDA !== "1", "Solo contra una instancia de prueba (CC_E2E_BIENVENIDA=1)");
 test.describe.configure({ mode: "serial" });
 
@@ -14,11 +15,26 @@ async function login(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: /entrar/i }).click();
 }
 
+async function loginCon(page: import("@playwright/test").Page, u: string, p: string) {
+  await page.goto("/login/");
+  await page.getByLabel(/usuario/i).fill(u);
+  await page.getByLabel(/contraseña/i).fill(p);
+  await page.getByRole("button", { name: /entrar/i }).click();
+}
+
 test("bienvenida, módulos y primera vez en un apartado", async ({ page }, info) => {
   test.skip(info.project.name !== "escritorio", "Cambia datos: una sola vez");
-  await login(page);
+  await loginCon(page, "admin", "admin");
+  // Primer acceso: nada más que cambiar usuario y contraseña
+  await expect(page.getByRole("heading", { name: "Antes de empezar, protege tu panel" })).toBeVisible();
+  await page.getByLabel("Usuario nuevo (opcional)").fill(USER);
+  await page.getByLabel("Contraseña actual").fill("admin");
+  await page.getByLabel("Contraseña nueva", { exact: true }).fill(PASS);
+  await page.getByLabel("Repite la contraseña nueva").fill(PASS);
+  await page.getByRole("button", { name: "Guardar y entrar" }).click();
   await expect(page).toHaveURL(/\/bienvenida\/?$/);
   await page.getByLabel("¿Cómo quieres que te llame?").fill("Ana");
+  await page.getByLabel("¿Y cómo quieres llamar a tu asistente?").fill("Friday");
   await page.getByLabel("Nueva área").fill("Mi proyecto");
   await page.getByRole("button", { name: "Añadir" }).click();
   await expect(page.getByText("Mi proyecto")).toBeVisible();
@@ -31,6 +47,8 @@ test("bienvenida, módulos y primera vez en un apartado", async ({ page }, info)
   await page.getByRole("button", { name: "Siguiente" }).click();
   await page.getByRole("button", { name: "Empezar" }).click();
   await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByText("Friday", { exact: true }).first()).toBeVisible();  // el panel ya lo llama por su nombre
+  await expect(page.getByText(/\bJarvis\b/)).toHaveCount(0);
   const menu = page.getByRole("navigation", { name: "Principal" });
   await expect(menu.getByRole("link", { name: "Finanzas" })).toBeVisible();
   await expect(menu.getByRole("link", { name: "Entrenamiento" })).toHaveCount(0);

@@ -21,6 +21,7 @@ from . import mirror
 from ..db import session_scope, utcnow
 from ..models import (Assessment, DecisionRecord, GradeItem, JobApplication, JobLead, JournalDay, StudyBlock, Subject, Task, VaultRecord,
                       Workout, WorkoutExercise, WorkoutSet)
+from ..marca import asistente
 
 sys.path.insert(0, str(ROOT / "collectors"))
 FILA = re.compile(r"^\|(.+)\|\s*$")
@@ -278,7 +279,7 @@ def sync_workouts(db: Session) -> dict:
     (d / f"{utcnow():%Y%m%d-%H%M%S}-Gym.md").write_text(texto, encoding="utf-8")
     mirror.export_workouts(db)
     mirror.warn("El registro de Gym.md es una copia de la base de datos: he descartado lo que cambiaste a mano (guardado en "
-                "data/control-center/descartes/gym). Registra o corrige entrenos desde Entrenamiento en el panel o pídeselo a Jarvis.")
+                f"data/control-center/descartes/gym). Registra o corrige entrenos desde Entrenamiento en el panel o pídeselo a {asistente()}.")
     return {"descartados": 1}
 
 
@@ -385,7 +386,7 @@ def sync_jobs(db: Session) -> dict:
         elif mirror.pipeline_in_note(texto) != mirror.pipeline_rows(db):
             # La base manda: la tabla es una copia. Lo cambiado a mano se descarta y se avisa
             mirror.export_jobs(db)
-            mirror.warn("La tabla del pipeline de Trabajo.md es una copia de la base de datos: he descartado lo que cambiaste a mano. Las candidaturas se cambian desde Carrera en el panel o pidiéndoselo a Jarvis.")
+            mirror.warn(f"La tabla del pipeline de Trabajo.md es una copia de la base de datos: he descartado lo que cambiaste a mano. Las candidaturas se cambian desde Carrera en el panel o pidiéndoselo a {asistente()}.")
     return {"ofertas": leads, "candidaturas_nuevas": apps}
 
 
@@ -456,7 +457,7 @@ def sync_journal(db: Session) -> dict:
         rehechas += mirror.export_journal(db, row)
     if cambiadas or ajenas:
         mirror.warn(f"El diario es una copia de la base de datos: he descartado {cambiadas + ajenas} cambios hechos a mano en Diario/ "
-                    "(guardados en data/control-center/descartes/diario). Para corregir un día, díselo a Jarvis o ciérralo desde el check-in de la noche.")
+                    f"(guardados en data/control-center/descartes/diario). Para corregir un día, díselo a {asistente()} o ciérralo desde el check-in de la noche.")
     return {"origen": len(filas), "descartados": cambiadas + ajenas, "rehechas": rehechas}
 
 

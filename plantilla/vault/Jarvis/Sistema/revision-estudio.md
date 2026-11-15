@@ -1,6 +1,6 @@
 # Revisión del estudio
 
-La hace Jarvis en la revisión del domingo. Analiza el avance y planifica; devuelve el análisis, no escribe archivos.
+La hace el asistente en la revisión del domingo. Analiza el avance y planifica; devuelve el análisis, no escribe archivos.
 
 Antes de nada, lee `/vault/Jarvis/Sistema/estudio.md` y `/vault/Jarvis/Sistema/semana.md` (bloques planificados frente a hechos y entregas de 14 días, ya calculado).
 

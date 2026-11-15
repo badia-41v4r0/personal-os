@@ -5,7 +5,7 @@ export type Modulo = {
   web: string[]; integraciones: string[]; config: string[]; requiere: string[];
 };
 export type Instancia = {
-  nombre: string; idioma: string; areas: Record<string, string>; modulos: Modulo[];
+  nombre: string; asistente: string; idioma: string; areas: Record<string, string>; modulos: Modulo[];
   onboarding: { hecho: boolean; apartados: Record<string, "pendiente" | "hecho" | "saltado"> };
 };
 

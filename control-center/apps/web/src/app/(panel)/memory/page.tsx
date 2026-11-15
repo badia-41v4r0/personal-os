@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api";
 import { timeAgo } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
+import { asistente } from "@/lib/asistente";
 
 type Entry = { name: string; path: string; dir: boolean; size: number; mtime: number };
 type FileData = { path: string; content: string; sha: string; mtime: number; editable: boolean; note: string };
@@ -247,7 +248,7 @@ function MemoryInner() {
             <h1 className="text-xl font-semibold tracking-tight">Memory</h1>
             <p className="max-w-xl text-sm text-muted-foreground">
               Tu vault de Obsidian, leída en directo (no se copia a la base del panel). Las notas que genera un script se muestran en solo lectura;
-              si una nota cambia en Obsidian o la toca Jarvis mientras la editas, el panel no la pisa.
+              si una nota cambia en Obsidian o la toca {asistente()} mientras la editas, el panel no la pisa.
             </p>
             <div className="flex flex-wrap gap-2">
               {["Jarvis/Panel.md", "Jarvis/Tareas.md", "Jarvis/Areas/Trabajo.md", "Jarvis/Areas/Gym.md", "Jarvis/Areas/Uni.md"].map((p) => (

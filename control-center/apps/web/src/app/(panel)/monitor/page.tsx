@@ -17,6 +17,7 @@ import { bytes, duration } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import type { Container, Metrics, Unit } from "@/lib/types";
 import { unitDetail, unitLevel } from "@/lib/units";
+import { asistente } from "@/lib/asistente";
 
 type HPoint = { ts: string; cpu: number | null; mem: number | null; swap: number | null; temp: number | null; gpu: number | null; vram: number | null; gpu_temp: number | null; disk: number | null; net_up: number | null; net_down: number | null };
 const RANGES = ["1h", "6h", "24h", "7d", "14d"] as const;
@@ -137,7 +138,7 @@ export default function MonitorPage() {
       <div className="mt-4 grid gap-4 xl:grid-cols-3">
         <ModelUsageCard />
         <Card>
-          <CardHeader><CardTitle>Servicios y timers de Jarvis</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Servicios y timers de {asistente()}</CardTitle></CardHeader>
           <CardContent>
             {services.error && <ErrorState message={services.error} />}
             {services.loading && <Loading rows={6} />}
@@ -184,7 +185,7 @@ export default function MonitorPage() {
                   </div>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">Se muestran los que están en marcha y los de Jarvis. Logs solo de los de Jarvis.</p>
+              <p className="mt-2 text-xs text-muted-foreground">Se muestran los que están en marcha y los de {asistente()}. Logs solo de los de {asistente()}.</p>
             </CardContent>
           </Card>
           {logs && (

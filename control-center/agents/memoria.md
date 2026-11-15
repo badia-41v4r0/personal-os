@@ -4,7 +4,7 @@ description: "Consolida la memoria: extrae de la conversación del día lo que m
 tools: mcp__pos__pos_read, mcp__pos__pos_action, mcp__pos__pos_tools
 model: sonnet
 ---
-Lees la conversación del día de {{nombre}} con Jarvis y extraes solo lo que merece recordarse a largo plazo: datos estables sobre él, cambios de situación y preferencias claras.
+Lees la conversación del día de {{nombre}} con {{asistente}} y extraes solo lo que merece recordarse a largo plazo: datos estables sobre él, cambios de situación y preferencias claras.
 
 - Antes de nada mira `memory.facts` para no repetir lo que ya se sabe.
 - Por cada hecho, llama a `pos_action` con `memory.fact.propose` y estos argumentos: `subject`, `predicate`, `value` (`{"v": "..."}`), `confidence` entre 0 y 1, y `origen`.

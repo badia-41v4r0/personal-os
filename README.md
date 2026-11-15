@@ -8,7 +8,7 @@ máquina; el modelo de IA solo ve lo que necesita en cada turno.
 
 ## Qué hace
 
-- **Inicio:** Jarvis, que lo ve todo, con check-in de mañana y noche, avisos y un resumen de tu día.
+- **Inicio:** tu asistente (por defecto se llama Jarvis, pero le pones el nombre que quieras), que lo ve todo, con check-in de mañana y noche, avisos y un resumen de tu día.
 - **Un asistente por apartado.** Cada uno solo ve lo suyo y solo puede hacer lo suyo.
 - **Módulos que activas y desactivas:** Agenda, Correo, Educación, Entrenamiento, Salud, Finanzas, Carrera, Objetivos,
   Estilo de vida, Conocimiento (tu vault de Obsidian), Proyectos (GitHub), Ayudante, Vídeos, Ordenadores virtuales,
@@ -32,8 +32,8 @@ git clone https://github.com/badia-41v4r0/personal-os.git && cd personal-os
 bin/pos instalar            # o «bin/pos instalar --simular» para ver qué haría sin tocar nada
 ```
 
-Abre la dirección que te indica (por defecto `http://127.0.0.1:8770`), entra con tu usuario y sigue la bienvenida.
-Si no, sigue los pasos de abajo.
+Abre la dirección que te indica (por defecto `http://127.0.0.1:8770`) y entra con **`admin` / `admin`**: lo primero que
+te pide es cambiarlos. Después, la bienvenida. Si no tienes los requisitos, sigue los pasos de abajo.
 
 ## Instalación paso a paso (con Docker)
 
@@ -128,7 +128,7 @@ bin/pos instalar
 ```
 
 Opciones: `--instancia NOMBRE` (por defecto `pos`), `--puerto N` (por defecto el primero libre desde el 8770),
-`--usuario NOMBRE` (por defecto tu usuario de Linux) y `--sin-ordenadores` (no construye las imágenes de los
+`--usuario NOMBRE` (crea ese usuario y te pide su contraseña en vez de usar `admin`/`admin`) y `--sin-ordenadores` (no construye las imágenes de los
 ordenadores virtuales; el tutor no podrá abrir tu campus).
 
 Lo que construye en Docker (la primera vez tarda varios minutos y ocupa varios GB):
@@ -139,7 +139,7 @@ Lo que construye en Docker (la primera vez tarda varios minutos y ocupa varios G
 | `<instancia>-vc:egress` | Proxy de los ordenadores con salida filtrada |
 | `<instancia>-vc:terminal`, `:desktop`, `:canvas`, `:aplicaciones` | Ordenadores virtuales (salvo con `--sin-ordenadores`) |
 
-Al final te pide la contraseña del panel.
+Al final crea el usuario inicial **`admin` / `admin`**.
 
 ### 6. Si usas Claude, pon tu token
 
@@ -157,8 +157,12 @@ bin/pos actualizar
 
 ### 7. Abre el panel
 
-`http://127.0.0.1:8770` (o el puerto que te indicó). Entra con tu usuario y sigue la bienvenida: tu nombre y áreas,
-motor de IA y módulos.
+`http://127.0.0.1:8770` (o el puerto que te indicó) y entra con **`admin` / `admin`**.
+
+1. **Lo primero, protege el panel:** te pide una contraseña nueva (mínimo 12 caracteres) y, si quieres, otro nombre de
+   usuario. Hasta que no lo hagas no puedes usar nada más. Después se cambian en **Configuración → Cuenta**.
+2. **Bienvenida:** tu nombre, **cómo quieres llamar a tu asistente** (por defecto Jarvis), tus áreas, el motor de IA y
+   los módulos. El nombre del asistente se cambia cuando quieras en **Configuración → Tú y tu asistente**.
 
 ### 8. Opcional: más servicios en Docker
 
@@ -193,6 +197,7 @@ journalctl --user -u <instancia>-cc-backend -n 50    # registro del panel
 
 | Síntoma | Solución |
 |---|---|
+| Olvidaste la contraseña | En el PC: `cd control-center/backend && set -a && . ../../data/control-center/secrets.env && set +a && .venv/bin/python -m app.cli set-password <usuario>` |
 | `permission denied ... docker.sock` | Tu usuario no está en el grupo `docker`, o no has vuelto a iniciar sesión (paso 1) |
 | «Hace falta Python 3.12» | Actualiza Python o usa una distribución más reciente |
 | El puerto 8770 está ocupado | El instalador elige otro solo; o pasa `--puerto 8780` |
@@ -249,6 +254,7 @@ quieres para un uso comercial, escríbele. Para contribuir, mira [CONTRIBUTING.m
 ## Estado
 
 Proyecto personal publicado tal cual. Funciona en Linux. En Docker Desktop (Mac o Windows) el panel podría funcionar,
-pero el monitor del PC, la voz y los ordenadores virtuales no. Documentación e interfaz en español.
+pero el monitor del PC, la voz y los ordenadores virtuales no funcionarían. En Linux, los ordenadores virtuales están
+incluidos y se instalan con `bin/pos instalar` (salvo con `--sin-ordenadores`). Documentación e interfaz en español.
 
 Usar tu suscripción de un proveedor de IA con este proyecto es responsabilidad tuya: revisa sus condiciones de uso.

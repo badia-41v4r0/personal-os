@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api, post } from "@/lib/api";
 import { clock, timeAgo } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
+import { asistente } from "@/lib/asistente";
 
 type Spec = { name: string; target: "jarvis" | "panel"; description: string; objective: string; specialty: string; instructions: string; restrictions: string; level: "read" | "propose" | "execute"; model: "sonnet" | "opus" | "inherit"; internet: boolean; vault: boolean; virtual_computer: boolean; subagents?: boolean };
 type Agent = { id: string; name: string; description: string; origin: "repo" | "panel"; status: "draft" | "active" | "inactive"; target: "jarvis" | "panel"; level: string; model: string; specialty: string; internet: boolean; vault: boolean; virtual_computer: boolean; subagents?: boolean; version: number; tools: string[]; workdir: string; runs: number; last_run: string | null; updated_at: string; file: string | null };
@@ -74,7 +75,7 @@ function Editor({ initial, isNew, baseVersion, onSaved }: { initial: Spec; isNew
             <div className="space-y-1.5"><Label htmlFor="a-name">Nombre</Label><Input id="a-name" value={s.name} disabled={!isNew} onChange={(e) => set("name", e.target.value.toLowerCase())} placeholder="analista-gym" /></div>
             <div className="space-y-1.5"><Label htmlFor="a-target">Tipo</Label>
               <select id="a-target" className={sel} value={s.target} disabled={!isNew} onChange={(e) => set("target", e.target.value as Spec["target"])}>
-                <option value="panel">Agente del panel (lanza conversaciones)</option><option value="jarvis">Subagente de Jarvis</option>
+                <option value="panel">Agente del panel (lanza conversaciones)</option><option value="jarvis">Subagente de {asistente()}</option>
               </select></div>
           </div>
           <div className="space-y-1.5"><Label htmlFor="a-desc">Descripción <span className="text-xs text-muted-foreground">(cuándo usarlo)</span></Label><Textarea id="a-desc" rows={2} value={s.description} onChange={(e) => set("description", e.target.value)} /></div>
@@ -91,7 +92,7 @@ function Editor({ initial, isNew, baseVersion, onSaved }: { initial: Spec; isNew
               </select></div>
             <div className="space-y-1.5"><Label htmlFor="a-model">Modelo</Label>
               <select id="a-model" className={sel} value={s.model} onChange={(e) => set("model", e.target.value as Spec["model"])}>
-                <option value="sonnet">Sonnet</option><option value="opus">Opus</option><option value="inherit">El de Jarvis</option>
+                <option value="sonnet">Sonnet</option><option value="opus">Opus</option><option value="inherit">El de {asistente()}</option>
               </select></div>
           </div>
           <div className="space-y-2 rounded-lg bg-muted/40 p-3 text-sm">
@@ -99,7 +100,7 @@ function Editor({ initial, isNew, baseVersion, onSaved }: { initial: Spec; isNew
             <label className="flex items-center justify-between gap-3">Memoria: leer la vault (solo lectura)<Switch checked={s.vault || s.target === "jarvis"} disabled={s.target === "jarvis"} onCheckedChange={(v) => set("vault", v)} /></label>
             <label className="flex items-center justify-between gap-3">Puede lanzar subagentes <span className="ml-auto mr-2 text-[11px] text-muted-foreground">con sus mismos permisos</span><Switch checked={!!s.subagents} disabled={s.target === "jarvis"} onCheckedChange={(v) => set("subagents", v)} /></label>
             <label className="flex items-center justify-between gap-3">Puede pedir su ordenador virtual<Switch checked={s.virtual_computer} disabled={s.target === "jarvis"} onCheckedChange={(v) => { set("virtual_computer", v); if (!v && s.level === "execute") set("level", "propose"); }} /></label>
-            {s.target === "jarvis" && <p className="text-xs text-muted-foreground">Un subagente de Jarvis ve lo mismo que Jarvis (vault, sin internet) y nunca más: sus permisos los limita la configuración de Jarvis.</p>}
+            {s.target === "jarvis" && <p className="text-xs text-muted-foreground">Un subagente de {asistente()} ve lo mismo que {asistente()} (vault, sin internet) y nunca más: sus permisos los limita la configuración de {asistente()}.</p>}
           </div>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <div className="flex justify-end gap-2">
@@ -132,7 +133,7 @@ function ConfirmDialog({ c, onConfirm, onClose }: { c: Confirm | null; onConfirm
     <Dialog open={!!c} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><ShieldAlert className="size-4 text-warning" /> Cambio en la configuración de Jarvis</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><ShieldAlert className="size-4 text-warning" /> Cambio en la configuración de {asistente()}</DialogTitle>
           <DialogDescription>{c?.note} Archivo: <code className="font-mono">{c?.file}</code></DialogDescription>
         </DialogHeader>
         {c?.rendered && <pre className="max-h-80 overflow-auto rounded-lg bg-muted p-3 font-mono text-[11px] whitespace-pre-wrap">{c.rendered}</pre>}
@@ -202,7 +203,7 @@ function Detail({ id }: { id: string }) {
       {error && <div className="mb-4"><ErrorState message={error} /></div>}
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
         {[
-          ["Estado", STATUS[d.status].label], ["Tipo", d.target === "jarvis" ? "Subagente de Jarvis" : "Agente del panel"],
+          ["Estado", STATUS[d.status].label], ["Tipo", d.target === "jarvis" ? `Subagente de ${asistente()}` : "Agente del panel"],
           ["Capacidad", LEVEL[d.level] ?? d.level], ["Modelo", d.model], ["Ejecuciones", String(d.runs)], ["Última", d.last_run ? timeAgo(d.last_run) : "—"],
         ].map(([k, v]) => (
           <Card key={k} size="sm"><CardContent><div className="text-xs text-muted-foreground">{k}</div><div className="mt-0.5 truncate text-sm font-medium">{v}</div></CardContent></Card>
@@ -238,7 +239,7 @@ function Detail({ id }: { id: string }) {
       {tab === "runs" && (
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2"><CardContent>
-            {runs.data?.length === 0 && <Empty message={d.target === "jarvis" ? "Los subagentes de Jarvis se ejecutan dentro de su sesión: sus usos se ven en el Chat (herramienta Agent)." : "Aún no hay ejecuciones."} />}
+            {runs.data?.length === 0 && <Empty message={d.target === "jarvis" ? `Los subagentes de ${asistente()} se ejecutan dentro de su sesión: sus usos se ven en el Chat (herramienta Agent).` : "Aún no hay ejecuciones."} />}
             <ul className="divide-y divide-border">
               {runs.data?.map((r) => (
                 <li key={r.id} className="grid gap-1 py-2 text-sm md:grid-cols-[7rem_1fr_auto]">
@@ -299,7 +300,7 @@ function List() {
             </div>
             <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{a.description}</p>
             <div className="mt-3 flex flex-wrap gap-1.5 text-[11px]">
-              <Badge variant="secondary">{a.target === "jarvis" ? "Subagente de Jarvis" : "Panel"}</Badge>
+              <Badge variant="secondary">{a.target === "jarvis" ? `Subagente de ${asistente()}` : "Panel"}</Badge>
               <Badge variant="outline">{LEVEL[a.level] ?? a.level}</Badge>
               <Badge variant="outline">{a.model}</Badge>
               {a.internet && <Badge variant="outline">internet</Badge>}

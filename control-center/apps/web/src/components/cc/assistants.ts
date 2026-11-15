@@ -1,10 +1,11 @@
 import { BriefcaseBusiness, CalendarDays, CheckSquare, Dumbbell, Heart, Landmark, Lightbulb, Plane, Search, Target, TrendingUp, type LucideIcon } from "lucide-react";
+import { asistente } from "@/lib/asistente";
 
 export type Quick = { label: string; icon: LucideIcon; text: string };
 export type Assistant = { key: string | null; name: string; hint: string; base: string; quick: Quick[] };
 
 const main: Assistant = {
-  key: null, name: "Jarvis", hint: "Asistente general", base: "/sessions/main",
+  key: null, get name() { return asistente(); }, hint: "Asistente general", base: "/sessions/main",
   quick: [
     { label: "Planificar mi semana", icon: CalendarDays, text: "Ayúdame a planificar esta semana con mi agenda, entregas y tareas." },
     { label: "Analizar mi entrenamiento", icon: Dumbbell, text: "Analiza mi entrenamiento de esta semana y dime qué ajustar." },

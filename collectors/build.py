@@ -155,7 +155,7 @@ def construir(hoy: date, con_github: bool = True):
     n_tareas = len(t["hoy"]) + len(t["hechas_hoy"])
 
     P = ["---", "cssclasses: [jarvis]", f"fecha: {h}", f"generado: {datetime.now():%Y-%m-%d %H:%M}", "---", "",
-         "# J.A.R.V.I.S.", "", *navegacion.barra(hoy), "",
+         f"# {ajustes.asistente()}", "", *navegacion.barra(hoy), "",
          f"> [!jarvis-hud] {fecha_larga(hoy).upper()}",
          f"> 📚 {len(u['bloques'])} bloques · 📌 {len(ent_hoy)} entregas hoy · ✅ {n_tareas} tareas · 🏋️ {g['sesion'] or 'descanso'}",
          ""]
@@ -230,7 +230,7 @@ def construir(hoy: date, con_github: bool = True):
 
     revisar = [x for x in gh if x.get("pr_staging")]
     if revisar:
-        P += ["", "> [!jarvis-alert] 🔀 PRs de Jarvis por revisar"]
+        P += ["", f"> [!jarvis-alert] 🔀 PRs de {ajustes.asistente()} por revisar"]
         P += [f"> - [{x['repo']}]({x['pr_staging']})" for x in revisar]
     if gh:
         P += ["", "> [!jarvis-card]- 🖥️ Repos (últimas 24 h)", "> | Repo | Commits | PRs | Issues |", "> |---|---|---|---|"]
@@ -240,7 +240,7 @@ def construir(hoy: date, con_github: bool = True):
             else:
                 P.append(f"> | {x['repo']} | {len(x['commits'])} | {len(x['prs'])} | {len(x['issues'])} |")
 
-    P += ["", NOTAS, "", notas or "_Apunta aquí lo que quieras. Jarvis lo lee al cerrar el día._", ""]
+    P += ["", NOTAS, "", notas or f"_Apunta aquí lo que quieras. {ajustes.asistente()} lo lee al cerrar el día._", ""]
     write_atomic(PANEL, "\n".join(P))
     save_json(ESTADO, r.estado)
     navegacion.migas(hoy)
@@ -301,7 +301,7 @@ def digest(hoy, u, ent_hoy, ent_prox, t, g, gh, ag_hoy=(), ag_prox=(), avisos=()
         D += [f"- [gmail id {c['id']}] {c['de']}: {c['asunto']}" for c in radar["reclutadores"]]
     pendientes = [x for x in gh if x.get("pr_staging")]
     if pendientes:
-        D += ["", "## PRs de Jarvis pendientes de revisar (staging → principal)"]
+        D += ["", f"## PRs de {ajustes.asistente()} pendientes de revisar (staging → principal)"]
         D += [f"- {x['repo']}: {x['pr_staging']}" for x in pendientes]
     activos = [x for x in gh if x.get("commits") or x.get("prs") or x.get("error")]
     if activos:

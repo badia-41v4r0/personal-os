@@ -18,6 +18,7 @@ import type { TranscriptItem } from "@/lib/types";
 import { IndependentChat } from "@/components/cc/independent-chat";
 import { AttachButton, AttachmentChips, DropOverlay, pasteFiles, useAttachments } from "@/components/cc/attachments";
 import { NewSessionDialog, type SessionSummary } from "@/components/cc/new-session";
+import { asistente } from "@/lib/asistente";
 
 type Page = { items: TranscriptItem[]; next_offset: number; claude_session_id: string | null };
 type Transcript = { claude_session_id: string; mtime: number; size: number };
@@ -96,7 +97,7 @@ function Bubble({ item }: { item: TranscriptItem }) {
     <div className={cn("flex flex-col gap-1", mine ? "items-end" : "items-start")}>
       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
         {!mine && !system && <Bot className="size-3" />}
-        <span>{mine ? "Tú" : system ? "Orden programada" : "Jarvis"}</span>
+        <span>{mine ? "Tú" : system ? "Orden programada" : `${asistente()}`}</span>
         <ChannelBadge channel={item.channel} />
         <span>{clock(item.ts)}</span>
       </div>
@@ -237,7 +238,7 @@ export default function ChatPage() {
       <div className="flex items-center gap-2 border-b border-border p-2 lg:hidden">
         <select value={active} onChange={(e) => choose(e.target.value)} aria-label="Conversación"
           className="h-8 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2 text-sm dark:bg-input/30">
-          <option value="main">Jarvis · compartida</option>
+          <option value="main">{asistente()} · compartida</option>
           {independent.filter((x) => x.status !== "archived" || x.id === active).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
         </select>
         <div className="w-44 shrink-0"><NewSessionDialog onCreated={(x) => { sessionsList.reload(); choose(x.id); }} /></div>
@@ -253,7 +254,7 @@ export default function ChatPage() {
           <div className="mb-1.5 px-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Sesiones</div>
           <button onClick={() => choose("main")} className={cn("flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-sidebar-accent", active === "main" && "bg-sidebar-accent")}>
             <StatusDot level={state.data?.tmux ? "ok" : state.data?.tmux === false ? "down" : "unknown"} pulse />
-            <span className="truncate">Jarvis · compartida</span>
+            <span className="truncate">{asistente()} · compartida</span>
           </button>
           <div className="mt-1 space-y-0.5">
             {independent.filter((x) => x.status !== "archived" || x.id === active).map((x) => (
@@ -295,7 +296,7 @@ export default function ChatPage() {
       <section className="flex min-h-0 flex-col">
         <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
           <div className="min-w-0">
-            <div className="truncate text-sm font-medium">Jarvis · sesión compartida con Telegram</div>
+            <div className="truncate text-sm font-medium">{asistente()} · sesión compartida con Telegram</div>
             <div className="text-[11px] text-muted-foreground">
               {following ? "En directo" : "Historial (solo lectura)"} · {page?.items.filter((i) => i.kind === "message").length ?? 0} mensajes
             </div>
@@ -316,12 +317,12 @@ export default function ChatPage() {
             ) : b.type === "tools" ? (
               <ToolsBlock key={b.items[0].uuid} items={b.items} />
             ) : (
-              <div key={`th-${i}`} className="pl-1 text-[11px] text-muted-foreground/70 italic">Jarvis está pensando (el razonamiento interno no se muestra)</div>
+              <div key={`th-${i}`} className="pl-1 text-[11px] text-muted-foreground/70 italic">{asistente()} está pensando (el razonamiento interno no se muestra)</div>
             ),
           )}
           {state.data?.current_run && (
             <div className="flex items-center gap-2 pl-1 text-xs text-muted-foreground">
-              <Loader2 className="size-3.5 animate-spin" /> Jarvis está trabajando…
+              <Loader2 className="size-3.5 animate-spin" /> {asistente()} está trabajando…
             </div>
           )}
           <div ref={bottom} />
@@ -346,12 +347,12 @@ export default function ChatPage() {
                 send();
               }
             }}
-            placeholder={following ? "Escribe a Jarvis… (Intro para enviar, Mayús+Intro para salto de línea)" : "Vuelve a «Actual» para escribir"}
+            placeholder={following ? `Escribe a ${asistente()}… (Intro para enviar, Mayús+Intro para salto de línea)` : "Vuelve a «Actual» para escribir"}
             disabled={!following || state.data?.tmux === false}
             maxLength={4000}
             rows={2}
             className="resize-none"
-            aria-label="Mensaje para Jarvis"
+            aria-label={`Mensaje para ${asistente()}`}
           />
           <div className="mt-2 flex items-center justify-between gap-2">
             <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
@@ -374,7 +375,7 @@ export default function ChatPage() {
       <aside className="hidden space-y-5 overflow-y-auto border-l border-border p-4 text-sm xl:block">
         <section>
           <h2 className="mb-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Agente</h2>
-          <div className="flex items-center gap-2"><Bot className="size-4 text-primary" /> Jarvis</div>
+          <div className="flex items-center gap-2"><Bot className="size-4 text-primary" /> {asistente()}</div>
           <dl className="mt-2 space-y-1 text-xs text-muted-foreground">
             <div className="flex justify-between"><dt>Modelo</dt><dd>Sonnet (por defecto)</dd></div>
             <div className="flex justify-between"><dt>Sesión tmux</dt><dd>{state.data?.tmux ? "activa" : state.data?.tmux === false ? "caída" : "—"}</dd></div>

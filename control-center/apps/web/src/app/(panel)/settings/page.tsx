@@ -9,6 +9,10 @@ import { post } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { GoogleCard } from "@/components/cc/google-card";
 import { MotorCard } from "@/components/cc/motor-card";
+import { CuentaForm } from "@/components/cc/cuenta-form";
+import { Input } from "@/components/ui/input";
+import { api } from "@/lib/api";
+import { useState } from "react";
 import Link from "next/link";
 
 type Audit = { id: number; ts: string; actor: string; action: string; target: string; outcome: string };
@@ -34,6 +38,41 @@ function AutonomyCard() {
   );
 }
 
+/** Tu nombre y el de tu asistente: se usan en el panel, en los avisos y en las instrucciones de los agentes. */
+function PerfilCard() {
+  const { inst, reloadInst } = usePanel();
+  const perfil = useApi<{ datos: Record<string, unknown> }>("/instancia/config/perfil");
+  const [nombre, setNombre] = useState<string | null>(null);
+  const [asis, setAsis] = useState<string | null>(null);
+  const [estado, setEstado] = useState<string | null>(null);
+  if (!inst || !perfil.data) return <Card><CardContent><Loading rows={2} /></CardContent></Card>;
+  const n = nombre ?? inst.nombre;
+  const a = asis ?? inst.asistente;
+  const guardar = async () => {
+    setEstado(null);
+    try {
+      await api("/instancia/config/perfil", { method: "PUT", body: JSON.stringify({ ...perfil.data!.datos, nombre: n.trim(), asistente: a.trim() || "Jarvis" }) });
+      reloadInst();
+      setEstado("Guardado");
+    } catch (e) {
+      setEstado(e instanceof Error ? e.message : String(e));
+    }
+  };
+  return (
+    <Card>
+      <CardHeader><CardTitle>Tú y tu asistente</CardTitle></CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <label className="block space-y-1" htmlFor="p-nombre"><span className="font-medium">Cómo te llama</span>
+          <Input id="p-nombre" value={n} onChange={(e) => setNombre(e.target.value)} /></label>
+        <label className="block space-y-1" htmlFor="p-asis"><span className="font-medium">Nombre de tu asistente</span>
+          <Input id="p-asis" value={a} maxLength={40} onChange={(e) => setAsis(e.target.value)} placeholder="Jarvis" /></label>
+        <div className="flex items-center justify-between gap-2"><span className="text-xs text-muted-foreground">{estado}</span>
+          <Button size="sm" disabled={!n.trim() || (n === inst.nombre && a === inst.asistente)} onClick={guardar}>Guardar</Button></div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SettingsPage() {
   const { me, live } = usePanel();
   const audit = useApi<Audit[]>("/audit?limit=100");
@@ -48,11 +87,10 @@ export default function SettingsPage() {
             <div className="flex justify-between"><span className="text-muted-foreground">Usuario</span><span>{me.username}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Rol</span><span>{me.role}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Tiempo real</span><span>{live === "ws" ? "WebSocket" : live === "poll" ? "Sondeo" : "—"}</span></div>
-            <p className="pt-2 text-xs text-muted-foreground">
-              La contraseña se cambia en el PC: <code className="font-mono">uv run python -m app.cli set-password {me.username}</code> (cierra todas las sesiones).
-            </p>
+            <div className="border-t border-border pt-3"><CuentaForm key={me.username} usuario={me.username} onHecho={() => window.location.reload()} /></div>
           </CardContent>
         </Card>
+        <PerfilCard />
         <div className="lg:col-span-2"><MotorCard /></div>
         <AutonomyCard />
         <GoogleCard />

@@ -2,6 +2,7 @@
 # Personal OS: instalar, comprobar, actualizar y desinstalar una instancia en este PC (Linux con systemd).
 #
 #   bin/pos instalar [--instancia NOMBRE] [--puerto N] [--usuario NOMBRE] [--sin-ordenadores] [--simular]
+#     (sin --usuario: el panel arranca con admin / admin y obliga a cambiarlos en el primer inicio de sesión)
 #   bin/pos comprobar          requisitos, servicios y salud del panel
 #   bin/pos actualizar         recompila y reinicia (no toca tus datos)
 #   bin/pos desinstalar [--borrar-datos]
@@ -160,10 +161,11 @@ instalar() {
   ok "Los temporizadores de cada módulo se encienden al activarlo en el panel"
 
   echo "== Usuario del panel"
-  usuario="${usuario:-$USER}"
-  if [ "$SIMULAR" = 1 ]; then printf '  (simulado) crear el usuario «%s»\n' "$usuario"
-  else
+  if [ "$SIMULAR" = 1 ]; then printf '  (simulado) crear el usuario inicial admin / admin\n'
+  elif [ -n "$usuario" ]; then  # --usuario: se crea ese y se pide la contraseña aquí
     (cd "$CC/backend" && set -a && . "$SEC" && set +a && .venv/bin/alembic upgrade head >/dev/null && .venv/bin/python -m app.cli set-password "$usuario")
+  else
+    (cd "$CC/backend" && set -a && . "$SEC" && set +a && .venv/bin/alembic upgrade head >/dev/null && .venv/bin/python -m app.cli crear-admin)
   fi
 
   if [ "$SIMULAR" = 0 ]; then
@@ -172,7 +174,8 @@ instalar() {
   fi
   cat <<EOF
 
-Listo. Abre http://127.0.0.1:$port y entra con «$usuario»: el asistente de bienvenida te guía (motor de IA, módulos y cuentas).
+Listo. Abre http://127.0.0.1:$port y entra con $([ -n "$usuario" ] && echo "«$usuario»" || echo "admin / admin (te pedirá cambiarlos al entrar)").
+El asistente de bienvenida te guía después (nombre de tu asistente, motor de IA y módulos).
 
 Para usarlo desde el móvil (opcional, con Tailscale, solo dentro de tu red privada):
   tailscale serve --bg --https=$port http://127.0.0.1:$port

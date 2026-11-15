@@ -22,6 +22,7 @@ from . import events
 from .config import get_settings
 from .db import get_db
 from .security import Principal, current_principal, require_admin
+from .marca import asistente
 
 router = APIRouter(prefix="/api/v1/memory", dependencies=[Depends(current_principal)])
 
@@ -33,8 +34,8 @@ IMG_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
 # Archivos que escriben los scripts: se pueden leer, no editar desde el panel.
 GENERADOS: list[tuple[str, str]] = [
     ("Jarvis/Tareas.md", "Copia de la base de datos del panel: crea y cambia las tareas desde Tareas en el panel (en Obsidian solo se acepta marcar casillas)"),
-    ("Jarvis/Diario/*", "Copia de la base de datos del panel: el diario lo escribe el cierre del día (díselo a Jarvis para corregirlo)"),
-    ("Jarvis/Panel.md", "Lo genera build.py cada mañana (Jarvis solo marca casillas y notas del día)"),
+    ("Jarvis/Diario/*", "Copia de la base de datos del panel: el diario lo escribe el cierre del día (díselo a tu asistente para corregirlo)"),
+    ("Jarvis/Panel.md", "Lo genera build.py cada mañana (tu asistente solo marca casillas y notas del día)"),
     ("Jarvis/Areas/Ofertas.md", "Lo genera ofertas.py"),
     ("Jarvis/Sistema/digest.md", "Lo genera build.py"),
     ("Jarvis/Sistema/semana.md", "Lo genera semanal.py"),
@@ -47,7 +48,7 @@ GENERADOS: list[tuple[str, str]] = [
 PARCIALES: dict[str, str] = {
     "Jarvis/Areas/Trabajo.md": "La tabla «Pipeline de candidaturas» es una copia de la base de datos: lo que cambies ahí se descarta (usa Carrera en el panel)",
     "Jarvis/Areas/Notas-Uni.md": "El «## Resumen» (Nota actual y Estado) lo reescribe notas.py",
-    "Jarvis/Areas/Gym.md": "«## Registro» es una copia de la base de datos: lo que cambies ahí se descarta (registra y corrige entrenos desde Entrenamiento o con Jarvis). Rutina y Perfil sí se editan aquí",
+    "Jarvis/Areas/Gym.md": "«## Registro» es una copia de la base de datos: lo que cambies ahí se descarta (registra y corrige entrenos desde Entrenamiento o con tu asistente). Rutina y Perfil sí se editan aquí",
 }
 WIKILINK = re.compile(r"\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\\?\|[^\]]*)?\]\]")
 
@@ -167,7 +168,7 @@ def save_file(body: SaveIn, p: Principal = Depends(require_admin), db: Session =
         if sha(current) != body.base_sha:
             events.audit(db, p.name, "memory.save", target=r, outcome="denied", reason="conflicto")
             db.commit()
-            raise HTTPException(409, "La nota ha cambiado desde que la abriste (Obsidian, Syncthing o Jarvis). Recárgala.")
+            raise HTTPException(409, f"La nota ha cambiado desde que la abriste (Obsidian, Syncthing o {asistente()}). Recárgala.")
     if not f.parent.is_dir():
         raise HTTPException(404, "La carpeta no existe")
     data = body.content.encode("utf-8")

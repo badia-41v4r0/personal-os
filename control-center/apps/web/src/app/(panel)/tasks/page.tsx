@@ -18,6 +18,7 @@ import { post } from "@/lib/api";
 import { clock, timeAgo } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import type { Unit } from "@/lib/types";
+import { asistente } from "@/lib/asistente";
 
 type Tarea = { texto: string; fecha: string | null; area: string; hecho: boolean; hecho_el: string | null; atrasada?: boolean };
 type Tasks = { pendientes: Tarea[]; hechas: Tarea[]; areas: Record<string, string>; fuente: string };
@@ -134,7 +135,7 @@ function ApprovalsTab() {
       <div className="space-y-3 xl:col-span-2">
         {a.data.error && <ErrorState message={`No se pudieron leer las propuestas: ${a.data.error}`} />}
         {error && <ErrorState message={error} />}
-        {a.data.pendientes.length === 0 && <Card><CardContent><Empty message="No hay propuestas de Jarvis pendientes." /></CardContent></Card>}
+        {a.data.pendientes.length === 0 && <Card><CardContent><Empty message={`No hay propuestas de ${asistente()} pendientes.`} /></CardContent></Card>}
         {a.data.pendientes.map((p) => (
           <Card key={p.nombre}>
             <CardContent className="space-y-3">
@@ -189,7 +190,7 @@ function ApprovalsTab() {
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Revisar «{sel?.nombre}»</DialogTitle>
-            <DialogDescription>Se instalará exactamente esto (huella {sel?.huella.slice(0, 12)}…). Si Jarvis lo cambia antes de aprobar, no se instalará.</DialogDescription>
+            <DialogDescription>Se instalará exactamente esto (huella {sel?.huella.slice(0, 12)}…). Si {asistente()} lo cambia antes de aprobar, no se instalará.</DialogDescription>
           </DialogHeader>
           <div className="max-h-[50vh] space-y-3 overflow-auto">
             {sel && Object.entries(sel.archivos).map(([f, c]) => (
@@ -205,7 +206,7 @@ function ApprovalsTab() {
       </Dialog>
       <Dialog open={!!reject} onOpenChange={(o) => !o && setReject(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Rechazar «{reject?.nombre}»</DialogTitle><DialogDescription>Se archiva en Propuestas/_archivo con el motivo, que Jarvis podrá leer.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Rechazar «{reject?.nombre}»</DialogTitle><DialogDescription>Se archiva en Propuestas/_archivo con el motivo, que {asistente()} podrá leer.</DialogDescription></DialogHeader>
           <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={500} placeholder="Motivo (opcional)" aria-label="Motivo" />
           <DialogFooter><Button variant="ghost" onClick={() => setReject(null)}>Cancelar</Button><Button variant="destructive" onClick={doReject} disabled={busy}>Rechazar</Button></DialogFooter>
         </DialogContent>
@@ -250,7 +251,7 @@ function QueuesTab() {
           </CardContent>
         </Card>
       ))}
-      <p className="text-xs text-muted-foreground lg:col-span-2">Las colas las crea Jarvis cuando le confirmas un encargo y se procesan solas en segundos (una tarea cada vez). Aquí se consultan; no se aprueban de nuevo.</p>
+      <p className="text-xs text-muted-foreground lg:col-span-2">Las colas las crea {asistente()} cuando le confirmas un encargo y se procesan solas en segundos (una tarea cada vez). Aquí se consultan; no se aprueban de nuevo.</p>
     </div>
   );
 }
@@ -361,8 +362,8 @@ function RequestsTab() {
       <Card className="lg:col-span-2">
         <CardHeader><CardTitle>Pendientes ({r.data.pendientes.length})</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {r.data.pendientes.map((x, i) => <div key={i} className="rounded-lg bg-muted/40 p-3 text-sm"><div className="mb-1 text-xs text-muted-foreground">{x.fecha} · Jarvis</div>{x.texto}</div>)}
-          <p className="text-xs text-muted-foreground">Son cosas que Jarvis no puede resolverse solo (permisos, scripts, cuentas). Se hacen en una sesión de Claude Code en el PC; al terminar se marcan con ✅ en {r.data.path && <Link href={`/memory/?p=${encodeURIComponent(r.data.path)}`} className="text-primary hover:underline">solicitudes.md</Link>}.</p>
+          {r.data.pendientes.map((x, i) => <div key={i} className="rounded-lg bg-muted/40 p-3 text-sm"><div className="mb-1 text-xs text-muted-foreground">{x.fecha} · {asistente()}</div>{x.texto}</div>)}
+          <p className="text-xs text-muted-foreground">Son cosas que {asistente()} no puede resolverse solo (permisos, scripts, cuentas). Se hacen en una sesión de Claude Code en el PC; al terminar se marcan con ✅ en {r.data.path && <Link href={`/memory/?p=${encodeURIComponent(r.data.path)}`} className="text-primary hover:underline">solicitudes.md</Link>}.</p>
         </CardContent>
       </Card>
       <Card>
@@ -381,7 +382,7 @@ export default function TasksPage() {
   }, []);
   return (
     <>
-      <PageHeader title="Tasks & Approvals" description="Aprobaciones de Jarvis, colas de trabajo, tareas, tareas programadas y solicitudes de permisos." />
+      <PageHeader title="Tasks & Approvals" description={`Aprobaciones de ${asistente()}, colas de trabajo, tareas, tareas programadas y solicitudes de permisos.`} />
       <div className="mb-4 flex flex-wrap gap-1" role="tablist">
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => { setTab(k); window.history.replaceState(null, "", `/tasks/?t=${k}`); }} className={cn("rounded-md px-3 py-1.5 text-sm", tab === k ? "bg-muted" : "text-muted-foreground hover:text-foreground")}>{l}</button>)}
       </div>

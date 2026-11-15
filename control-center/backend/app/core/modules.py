@@ -42,7 +42,7 @@ class Module:
 
 
 MODULES: dict[str, Module] = {m.id: m for m in (
-    Module("inicio", "Inicio", "Jarvis, memoria, tareas, avisos y check-ins: lo mínimo para usar el sistema.", nucleo=True,
+    Module("inicio", "Inicio", "{{asistente}}, memoria, tareas, avisos y check-ins: lo mínimo para usar el sistema.", nucleo=True,
            web=("/", "/tasks/", "/memory/hechos/", "/avisos/"),
            prefijos=("memory.", "task.", "note.", "journal."), nombres=("tasks.list", "day.close"),
            asistentes=("jarvis", "memoria", "rutina"), config=("perfil",)),
@@ -84,7 +84,7 @@ MODULES: dict[str, Module] = {m.id: m for m in (
     Module("videos", "Vídeos", "Analiza vídeos cortos (Instagram, TikTok, Shorts) con transcripción local.", nombres=("video.analyze",)),
     Module("ordenadores", "Ordenadores virtuales", "Contenedores con terminal, navegador o escritorio para los agentes.",
            web=("/virtual-computers/",), api=("/api/v1/virtual-computers",)),
-    Module("voz", "Voz en el PC", "«Hey Jarvis» con el micrófono del PC y respuesta hablada (local).", timers=()),
+    Module("voz", "Voz en el PC", "«Hey {{asistente}}» con el micrófono del PC y respuesta hablada (local).", timers=()),
     Module("telegram", "Avisos por Telegram", "Copia de las alertas críticas a un bot de Telegram (solo salida).",
            integraciones=("telegram",)),
 )}
@@ -171,6 +171,6 @@ def requiere(mid: str):
 
 def vista(act: set[str] | None = None) -> list[dict]:
     act = act if act is not None else activos()
-    return [{"id": m.id, "nombre": m.nombre, "descripcion": m.descripcion, "nucleo": m.nucleo, "activo": m.id in act,
+    return [{"id": m.id, "nombre": m.nombre, "descripcion": ajustes.render(m.descripcion), "nucleo": m.nucleo, "activo": m.id in act,
              "web": list(m.web), "integraciones": list(m.integraciones), "config": list(m.config), "requiere": list(m.requiere)}
             for m in MODULES.values()]

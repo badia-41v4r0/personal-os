@@ -1,6 +1,6 @@
 # Guía de uso
 
-El panel tiene **Inicio** (Jarvis, que lo ve todo) y un apartado por módulo activo. Cada apartado tiene a la derecha su
+El panel tiene **Inicio** (tu asistente, que lo ve todo; se llama Jarvis salvo que le pongas otro nombre en Configuración → Tú y tu asistente) y un apartado por módulo activo. Cada apartado tiene a la derecha su
 propio asistente (en el móvil, en la barra de abajo), que solo ve el contenido de ese apartado.
 
 ## Lo que conviene saber primero
@@ -15,11 +15,11 @@ propio asistente (en el móvil, en la barra de abajo), que solo ve el contenido 
 ## Apartados
 
 **Inicio.** Resumen del día, check-in de mañana (ánimo, energía, sueño) y de noche («Guardar y cerrar el día» pide a
-la rutina que escriba tu diario). Jarvis responde a cualquier cosa y puede delegar en los demás apartados.
+la rutina que escriba tu diario). Tu asistente responde a cualquier cosa y puede delegar en los demás apartados.
 
 **Agenda y Tareas.** Calendario unificado (Google, entregas, tareas con fecha, sesiones de gym, seguimientos de
 candidaturas, vencimientos). Conecta Google en Configuración → Permisos de Google. Las tareas se crean aquí, por
-Jarvis o en el cierre del día.
+tu asistente o en el cierre del día.
 
 **Educación.** Asignaturas, entregas, plan de estudio con bloques según tu disponibilidad, cronómetro, repaso
 espaciado (tarjetas) y simulacros. El **tutor** tiene un ordenador virtual con tu campus: inicias sesión tú una vez

@@ -152,7 +152,7 @@ def auth(abrir: bool = False, espera_h: float | None = None, cuenta: str = "pers
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             if q.get("state", [""])[0] == estado and "code" in q:
                 recibido["code"] = q["code"][0]
-                msg = "Listo. Jarvis ya tiene acceso a tu calendario y a tu correo (leer y borradores). Puedes cerrar esta pestaña."
+                msg = f"Listo. {ajustes.asistente()} ya tiene acceso a tu calendario y a tu correo (leer y borradores). Puedes cerrar esta pestaña."
             else:
                 msg = "Algo no ha ido bien. Vuelve a intentarlo."
             self.send_response(200)
@@ -245,7 +245,7 @@ def _cuando(args) -> dict:
 def _evento_propio(token: str, eid: str) -> dict:
     e = _api("GET", f"/calendars/primary/events/{urllib.parse.quote(eid)}", token)
     if e.get("extendedProperties", {}).get("private", {}).get("jarvis") != "1":
-        raise Error("Ese evento no lo creó Jarvis: no puedo modificarlo ni borrarlo.")
+        raise Error(f"Ese evento no lo creó {ajustes.asistente()}: no puedo modificarlo ni borrarlo.")
     return e
 
 
@@ -274,7 +274,7 @@ def borrar(args):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Google Calendar para Jarvis")
+    ap = argparse.ArgumentParser(description=f"Google Calendar para {ajustes.asistente()}")
     sub = ap.add_subparsers(dest="cmd", required=True)
     au = sub.add_parser("auth")
     au.add_argument("--abrir", action="store_true", help="abre la pestaña en el navegador")

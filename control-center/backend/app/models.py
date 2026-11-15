@@ -17,6 +17,8 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(16), default="admin")  # admin | viewer
     failed_logins: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # El usuario inicial (admin/admin) tiene que cambiar usuario y contraseña antes de usar el panel
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 

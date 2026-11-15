@@ -10,14 +10,16 @@ import { useApi, useEvents, type BusEvent } from "@/lib/hooks";
 import { syncPush } from "@/lib/push";
 import { visible, moduloDe, type Instancia } from "@/lib/instancia";
 import { OnboardingBanner } from "./onboarding-banner";
+import { CuentaForm } from "./cuenta-form";
 import { Button } from "@/components/ui/button";
 import { AGENTS_TABS, NAV, NAV_MOBILE, NAV_SYSTEM, isActive, type NavItem } from "./nav";
 import { CommandPalette } from "./command-palette";
 import { assistantFor } from "./assistants";
 import { JarvisDock } from "./jarvis-dock";
 import { StatusDot } from "./status";
+import { asistente, setAsistente } from "@/lib/asistente";
 
-type Me = { username: string; role: string; csrf_token: string };
+type Me = { username: string; role: string; csrf_token: string; must_change_password?: boolean };
 type Ctx = { me: Me; lastEvent: BusEvent | null; live: "ws" | "poll" | "off"; subscribe: (fn: (e: BusEvent) => void) => () => void; inst: Instancia | null; reloadInst: () => void };
 const PanelCtx = createContext<Ctx | null>(null);
 
@@ -148,6 +150,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const instancia = useApi<Instancia>(me ? "/instancia" : null);
   const { reload: reloadInst } = instancia;
   const inst = instancia.data;
+  if (inst) setAsistente(inst.asistente);  // antes de pintar nada: todos los textos salen con su nombre
   useEffect(() => {
     if (lastEvent?.type === "config.changed") {
       reloadInst();
@@ -165,16 +168,30 @@ export function Shell({ children }: { children: React.ReactNode }) {
     }
   }, [me]);
 
-  if (!me) {
+  if (me?.must_change_password) {
+    // Primer acceso con el usuario de la instalación (admin/admin): nada más hasta cambiarlo
+    return (
+      <div className="grid min-h-dvh place-items-center p-4">
+        <div className="w-full max-w-sm space-y-4 rounded-xl border border-border bg-card p-6">
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight">Antes de empezar, protege tu panel</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Has entrado con el usuario de la instalación (admin / admin), que conoce todo el mundo. Elige una contraseña tuya; si quieres, también otro usuario.</p>
+          </div>
+          <CuentaForm usuario={me.username} obligatorio onHecho={(u) => { setMe({ ...me, username: u, must_change_password: false }); reloadInst(); }} />
+        </div>
+      </div>
+    );
+  }
+  if (!me || (!inst && !instancia.error)) {
     return <div className="grid min-h-dvh place-items-center text-sm text-muted-foreground">Conectando…</div>;
   }
 
   const sidebar = (
     <div className="flex h-full flex-col gap-4 p-3">
       <div className="flex items-center gap-2.5 px-3 pt-2">
-        <div className="grid size-8 place-items-center rounded-lg bg-primary/15 font-mono text-sm font-semibold text-primary">J</div>
+        <div className="grid size-8 place-items-center rounded-lg bg-primary/15 font-mono text-sm font-semibold text-primary">{asistente().charAt(0).toUpperCase()}</div>
         <div className="leading-tight">
-          <div className="text-sm font-semibold tracking-tight">Jarvis</div>
+          <div className="text-sm font-semibold tracking-tight">{asistente()}</div>
           <div className="text-[11px] text-muted-foreground">Personal OS</div>
         </div>
       </div>
@@ -240,7 +257,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           {sheet && <div role="dialog" aria-modal="true" aria-label={assistant.name} className="fixed inset-0 z-50 bg-card pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] xl:hidden"><JarvisDock key={assistant.base} assistant={assistant} onClose={() => setSheet(false)} /></div>}
           <nav aria-label="Accesos rápidos" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
             {NAV_MOBILE.filter((i) => visible(inst, i.href)).map(({ href, label, icon: Icon }) => href === "/chat/" ? (
-              <button key={href} type="button" onClick={() => setSheet(true)} className="flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground"><Icon className="size-5" />{assistant.key ? assistant.name.split(" ")[0] : label}</button>
+              <button key={href} type="button" onClick={() => setSheet(true)} className="flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground"><Icon className="size-5" />{assistant.key ? assistant.name.split(" ")[0] : asistente()}</button>
             ) : (
               <Link key={href} href={href} aria-current={isActive(href, path) ? "page" : undefined} className={cn("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground", isActive(href, path) && "text-primary")}>
                 <Icon className="size-5" />{label}

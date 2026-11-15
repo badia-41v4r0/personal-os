@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { post } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
+import { asistente } from "@/lib/asistente";
 
 type Fact = { id: number; subject: string; predicate: string; value: Record<string, unknown>; verification: string; confidence: number | null };
 const LABEL: Record<string, string> = { inferred: "Propuesto por un agente", reported: "Reportado", imported: "Importado", confirmed: "Confirmado" };
@@ -29,7 +30,7 @@ export default function HechosPage() {
   );
   return (
     <>
-      <PageHeader title="Qué sé de ti" description="Lo que Jarvis da por cierto. Lo propuesto por un agente no cuenta hasta que lo confirmes." actions={<Link href="/memory/" className="text-xs text-primary hover:underline">Volver a Conocimiento</Link>} />
+      <PageHeader title="Qué sé de ti" description={`Lo que ${asistente()} da por cierto. Lo propuesto por un agente no cuenta hasta que lo confirmes.`} actions={<Link href="/memory/" className="text-xs text-primary hover:underline">Volver a Conocimiento</Link>} />
       {f.error && <ErrorState message={f.error} />}
       {a.ErrorBox}
       {f.loading && <Loading rows={4} />}

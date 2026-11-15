@@ -21,6 +21,7 @@ from .core import notifications
 from .db import get_db, session_scope, utcnow
 from .models import Alert, Event, MetricSample
 from .security import Principal, current_principal, require_admin
+from .marca import asistente
 
 log = logging.getLogger("cc.monitor")
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(current_principal)])
@@ -46,7 +47,7 @@ def evaluate(snap: dict, recent: list[dict]) -> list[Finding]:
     out: list[Finding] = []
     if snap.get("host_agent") is False:
         out.append(Finding("hostagent:down", "critical", "El Host Agent no responde",
-                           "Sin él no hay métricas ni se puede escribir a Jarvis desde el panel."))
+                           f"Sin él no hay métricas ni se puede escribir a {asistente()} desde el panel."))
         return out
     m = snap.get("metrics") or {}
     last = recent[-SUSTAINED:]
@@ -76,7 +77,7 @@ def evaluate(snap: dict, recent: list[dict]) -> list[Finding]:
     if conts is not None:
         j = next((c for c in conts if c["Names"] == INSTANCE), None)
         if not j or j["State"] != "running":
-            out.append(Finding(f"contenedor:{INSTANCE}", "critical", "El contenedor de Jarvis no está en marcha",
+            out.append(Finding(f"contenedor:{INSTANCE}", "critical", f"El contenedor de {asistente()} no está en marcha",
                                j["Status"] if j else "No existe"))
     return out
 

@@ -15,6 +15,7 @@ import {
   type Comparacion, day, errMsg, type ExIndex, kg, Msg, MUSCULO, musc, NivelBadge, type Plan, selectCls, type Serie, SerieChips, serie, SESIONES, type Workout,
 } from "./common";
 import { ComparacionView } from "./training";
+import { asistente } from "@/lib/asistente";
 
 type Detail = Omit<Workout, "ejercicios"> & {
   ejercicios: { id: string; nombre: string; series: Serie[]; volumen: number; efectivas: number; notas: string; tipo: string; principales: string[]; secundarios: string[]; raw: string }[];
@@ -136,7 +137,7 @@ function Importar() {
   };
   return (
     <div className="space-y-3 text-sm">
-      <p className="text-xs text-muted-foreground">Hevy no tiene API sin Pro: exporta el CSV (Perfil → Ajustes → Exportar datos) y súbelo aquí o mándalo a Jarvis por Telegram. Solo se añaden a Gym.md los días que aún no están; antes ves la vista previa.</p>
+      <p className="text-xs text-muted-foreground">Hevy no tiene API sin Pro: exporta el CSV (Perfil → Ajustes → Exportar datos) y súbelo aquí o mándalo a {asistente()} por Telegram. Solo se añaden a Gym.md los días que aún no están; antes ves la vista previa.</p>
       <div className="flex flex-wrap items-center gap-2">
         <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 hover:bg-muted"><Upload className="size-4" /> {archivo || "Elegir CSV"}
           <input type="file" accept=".csv,text/csv" className="sr-only" onChange={async (e) => {

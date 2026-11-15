@@ -34,6 +34,18 @@ def hash_password(pw: str) -> str:
     return _ph.hash(pw)
 
 
+USUARIO_INICIAL = ("admin", "admin")
+
+
+def hash_inicial() -> str:
+    """Solo para el usuario de la instalación: admin/admin, que el panel obliga a cambiar al entrar."""
+    return _ph.hash(USUARIO_INICIAL[1])
+
+
+# Lo único que puede hacer quien aún tiene que cambiar la contraseña
+RUTAS_SIN_CAMBIO = {"/api/v1/auth/me", "/api/v1/auth/logout", "/api/v1/auth/cuenta"}
+
+
 def verify_password(h: str, pw: str) -> bool:
     try:
         return _ph.verify(h, pw)
@@ -117,6 +129,8 @@ def current_principal(request: Request) -> Principal:
             if not hmac.compare_digest(sent, sess.csrf_token):
                 raise HTTPException(403, "Token CSRF inválido")
         user = db.get(User, sess.user_id)
+        if user.must_change_password and request.url.path not in RUTAS_SIN_CAMBIO:
+            raise HTTPException(403, "Antes de seguir, cambia el usuario y la contraseña de la instalación")
         return Principal(user, sess)
 
 

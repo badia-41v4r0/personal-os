@@ -1,6 +1,6 @@
 # ⚙️ Sistema
 
-Instrucciones de las rutinas y especialistas. Jarvis solo lee el archivo que necesita en cada momento y **no puede
+Instrucciones de las rutinas y especialistas. El asistente solo lee el archivo que necesita en cada momento y **no puede
 escribir en esta carpeta**: cámbialas tú cuando quieras ajustar cómo trabaja.
 
 - `briefing.md`: el briefing de la mañana.
@@ -9,4 +9,4 @@ escribir en esta carpeta**: cámbialas tú cuando quieras ajustar cómo trabaja.
 - `gym.md`: método de entrenamiento (personalízalo).
 - `estudio.md`: cómo estudias y qué te cuesta (personalízalo).
 - `ofertas.md`: reglas del radar de ofertas.
-- `propuestas.md`: cómo propone Jarvis skills o subagentes nuevos.
+- `propuestas.md`: cómo propone el asistente skills o subagentes nuevos.

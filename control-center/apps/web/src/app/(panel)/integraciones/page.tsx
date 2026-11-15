@@ -5,6 +5,7 @@ import { StatusRow, type Level } from "@/components/cc/status";
 import { ErrorState, Loading } from "@/components/cc/states";
 import { Card, CardContent } from "@/components/ui/card";
 import { useApi } from "@/lib/hooks";
+import { asistente } from "@/lib/asistente";
 
 type Integracion = { nombre: string; uso: string; estado: "conectada" | "manual" | "sin_conectar"; detalle: string };
 const LEVEL: Record<Integracion["estado"], Level> = { conectada: "ok", manual: "unknown", sin_conectar: "warn" };
@@ -14,7 +15,7 @@ export default function IntegracionesPage() {
   const list = useApi<Integracion[]>("/home/integraciones", 60000);
   return (
     <>
-      <PageHeader title="Integraciones" description="Con qué se conecta Jarvis y cómo." />
+      <PageHeader title="Integraciones" description={`Con qué se conecta ${asistente()} y cómo.`} />
       {list.error && <ErrorState message={list.error} />}
       {list.loading && <Loading rows={6} />}
       {list.data && (

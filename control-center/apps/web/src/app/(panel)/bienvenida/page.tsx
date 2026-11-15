@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { MotorCard } from "@/components/cc/motor-card";
 import { api } from "@/lib/api";
+import { asistente } from "@/lib/asistente";
 
 type Area = { id: string; nombre: string; emoji: string };
 const PASOS = ["Tú", "Motor de IA", "Módulos", "Listo"];
@@ -24,6 +25,7 @@ export default function Bienvenida() {
   const { inst, reloadInst } = usePanel();
   const [paso, setPaso] = useState(0);
   const [nombre, setNombre] = useState("");
+  const [asis, setAsis] = useState<string | null>(null);
   const [areas, setAreas] = useState<Area[]>(AREAS_DEF);
   const [nueva, setNueva] = useState("");
   const [activos, setActivos] = useState<string[] | null>(null);
@@ -31,6 +33,7 @@ export default function Bienvenida() {
   const [busy, setBusy] = useState(false);
   if (!inst) return <Loading rows={4} />;
   const sel = activos ?? inst.modulos.filter((m) => m.activo).map((m) => m.id);
+  const nombreAsis = asis ?? inst.asistente;
 
   const guardar = async (f: () => Promise<unknown>, siguiente: number) => {
     setBusy(true);
@@ -65,6 +68,9 @@ export default function Bienvenida() {
           <CardContent className="space-y-4 text-sm">
             <label className="block space-y-1" htmlFor="b-nombre"><span className="font-medium">¿Cómo quieres que te llame?</span>
               <Input id="b-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" autoFocus /></label>
+            <label className="block space-y-1" htmlFor="b-asis"><span className="font-medium">¿Y cómo quieres llamar a tu asistente?</span>
+              <Input id="b-asis" value={nombreAsis} maxLength={40} onChange={(e) => setAsis(e.target.value)} placeholder="Jarvis" />
+              <span className="block text-xs text-muted-foreground">Es el nombre con el que te hablará y aparecerá en el panel. Puedes cambiarlo cuando quieras en Configuración.</span></label>
             <div className="space-y-2">
               <p className="font-medium">Áreas de tu vida (agrupan tus tareas)</p>
               <div className="flex flex-wrap gap-2">
@@ -80,7 +86,7 @@ export default function Bienvenida() {
               </form>
             </div>
             <div className="flex justify-end">
-              <Button disabled={busy || !nombre.trim()} onClick={() => guardar(() => api("/instancia/config/perfil", { method: "PUT", body: JSON.stringify({ nombre: nombre.trim(), areas }) }), 1)}>Siguiente</Button>
+              <Button disabled={busy || !nombre.trim()} onClick={() => guardar(() => api("/instancia/config/perfil", { method: "PUT", body: JSON.stringify({ nombre: nombre.trim(), asistente: nombreAsis.trim() || "Jarvis", areas }) }), 1)}>Siguiente</Button>
             </div>
           </CardContent>
         </Card>
@@ -115,7 +121,7 @@ export default function Bienvenida() {
         <Card>
           <CardHeader><CardTitle>¡Listo!</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <p>En Inicio está Jarvis, que lo ve todo. Cada apartado tiene su propio asistente y, la primera vez que lo abras, te ofrecerá configurarlo contigo.</p>
+            <p>En Inicio está {asistente()}, que lo ve todo. Cada apartado tiene su propio asistente y, la primera vez que lo abras, te ofrecerá configurarlo contigo.</p>
             <p className="text-muted-foreground">Cuentas como Google, GitHub o Telegram se conectan en Configuración cuando las necesites.</p>
             <div className="flex justify-end">
               <Button disabled={busy} onClick={() => guardar(async () => {

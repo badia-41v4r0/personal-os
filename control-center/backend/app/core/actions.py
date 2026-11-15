@@ -27,6 +27,7 @@ from ..db import get_db, session_scope, utcnow
 from ..models import Action, Policy, Revocation, SystemFlag
 from ..security import Principal, current_principal, require_admin
 from . import notifications
+from ..marca import asistente
 
 log = logging.getLogger("cc.actions")
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(current_principal)])
@@ -90,7 +91,7 @@ def _revoked(db: Session, agent: str, capability: str) -> bool:
 
 
 def _notify(a_id: str, summary: str) -> None:
-    n = notifications.crear("action", "Jarvis pide tu aprobación", summary, "/tasks/?t=approvals", "acciones")
+    n = notifications.crear("action", f"{asistente()} pide tu aprobación", summary, "/tasks/?t=approvals", "acciones")
     threading.Thread(target=notifications._entregar, args=(n,), daemon=True).start()
 
 

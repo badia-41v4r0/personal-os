@@ -76,7 +76,7 @@ CONTAINER_RE = re.compile(rf"^({re.escape(INST)}|{re.escape(INST)}-vc-[a-z0-9-]{
 SYSTEM_UNITS = ("docker.service", "tailscaled.service")
 TIMEOUT = 10
 
-app = FastAPI(title="Jarvis Host Agent", docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(title="Personal OS Host Agent", docs_url=None, redoc_url=None, openapi_url=None)
 
 
 def _audit(request: Request, capability: str, outcome: str, **detail) -> None:
@@ -509,7 +509,7 @@ def jarvis_prompt(request: Request, run_id: str = Body(...), text: str = Body(..
         raise HTTPException(422, f"El mensaje debe tener entre 1 y {MAX_PROMPT} caracteres")
     if not tmux_alive():
         _audit(request, "jarvis.prompt", "error", reason="sin sesión", run_id=run_id)
-        raise HTTPException(503, "La sesión de Jarvis no está en marcha")
+        raise HTTPException(503, "La sesión del asistente no está en marcha")
     line = f"💻 [panel id={run_id}{' tg' if telegram else ''}] {body}"
     with prompt_lock_path().open("w") as fl:
         fcntl.flock(fl, fcntl.LOCK_EX)
@@ -523,7 +523,7 @@ def jarvis_prompt(request: Request, run_id: str = Body(...), text: str = Body(..
 @app.post("/v1/jarvis/interrupt", dependencies=[Depends(auth)])
 def jarvis_interrupt(request: Request):
     if not tmux_alive():
-        raise HTTPException(503, "La sesión de Jarvis no está en marcha")
+        raise HTTPException(503, "La sesión del asistente no está en marcha")
     with prompt_lock_path().open("w") as fl:
         fcntl.flock(fl, fcntl.LOCK_EX)
         run(TMUX + ["send-keys", "-t", INST, "Escape"])

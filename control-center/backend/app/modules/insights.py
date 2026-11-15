@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from ..models import CheckIn, Fact, Habit, HabitLog, JournalEntry, LedgerAccount
 from . import finance, personal
+from ..marca import asistente
 
 MAX = 3
 PRIORITY = {"aviso": 0, "siguiente": 1, "bien": 2}
@@ -61,7 +62,7 @@ def checkin_insights(db: Session, today: date) -> list[dict]:
     ayer = (today - timedelta(days=1)).isoformat()
     if db.scalar(select(func.count()).select_from(CheckIn).where(CheckIn.day < ayer)) and \
             not db.scalar(select(func.count()).select_from(CheckIn).where(CheckIn.day == ayer)):
-        out.append(item("siguiente", "Ayer sin check-in", "Un minuto al día basta para que Jarvis vea cómo vas.", "Check-ins", "/"))
+        out.append(item("siguiente", "Ayer sin check-in", f"Un minuto al día basta para que {asistente()} vea cómo vas.", "Check-ins", "/"))
     return out
 
 
@@ -103,7 +104,7 @@ def build(db: Session, today: date, gym: dict, estudios: dict, carrera: dict, ta
     out.extend(checkin_insights(db, today))
     por_confirmar = db.scalar(select(func.count()).select_from(Fact).where(Fact.verification == "inferred", Fact.valid_to.is_(None)))
     if por_confirmar:
-        out.append(item("siguiente", "Jarvis ha aprendido algo", f"{por_confirmar} por confirmar en «Qué sé de ti».", "Memoria", "/memory/hechos/"))
+        out.append(item("siguiente", f"{asistente()} ha aprendido algo", f"{por_confirmar} por confirmar en «Qué sé de ti».", "Memoria", "/memory/hechos/"))
     # Lo importante primero, pero siempre con sitio para una buena noticia si la hay
     out.sort(key=lambda i: PRIORITY[i["tipo"]])
     bien = next((i for i in out if i["tipo"] == "bien"), None)

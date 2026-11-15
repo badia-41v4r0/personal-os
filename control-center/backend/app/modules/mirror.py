@@ -63,7 +63,7 @@ def export_tasks(db: Session, path=None) -> None:
     _write(path, "\n".join([inicio, "", "## Pendientes", *pendientes, "", "## Hechas", *hechas]) + "\n")
 
 
-AVISO_GYM = "> ⚠️ Copia generada desde la base de datos del panel: registra o corrige entrenos desde el panel o con Jarvis; lo que cambies aquí se descarta."
+AVISO_GYM = "> ⚠️ Copia generada desde la base de datos del panel: registra o corrige entrenos desde el panel o con tu asistente; lo que cambies aquí se descarta."
 
 
 def workouts_text(db: Session) -> str:

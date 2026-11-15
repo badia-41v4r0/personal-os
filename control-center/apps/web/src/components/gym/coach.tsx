@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApiError, post } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { type Decision, errMsg, Evidencia, kg, Msg, MUSCULO, NivelBadge, num, type Obs } from "./common";
+import { asistente } from "@/lib/asistente";
 
 type Coach = { session: SessionSummary | null; herramientas: string[]; pendientes: number };
 type ReportRow = { id: number; tipo: string; desde: string; hasta: string; creado: string; enviado: string | null; resumen: { sesiones_hechas: number; sesiones_previstas: number; cumplimiento: number | null; volumen_kg: number; series: number } };
@@ -124,7 +125,7 @@ function ReportView({ id }: { id: number }) {
       {d.evolucion_muscular && <div className="text-xs text-muted-foreground"><b className="text-foreground">Evolución muscular (series del mes frente al anterior):</b> {Object.entries(d.evolucion_muscular).filter(([, v]) => v.mes || v.mes_anterior).map(([k, v]) => `${MUSCULO[k] ?? k} ${num(v.mes_anterior)}→${num(v.mes)}`).join(" · ")}</div>}
       {d.cambios_rutina && d.cambios_rutina.length > 0 && <div><b>Cambios de rutina:</b> {d.cambios_rutina.map((c) => `v${c.version}: ${c.motivo}`).join("; ")}</div>}
       {d.decisiones && d.decisiones.length > 0 && <div><b>Recomendaciones del mes y resultado:</b><ul className="list-disc pl-5 text-xs">{d.decisiones.map((x) => <li key={x.id}>{TIPO[x.tipo] ?? x.tipo} · {x.objetivo_de}: {x.evaluacion ? `${x.evaluacion.estado.replace("_", " ")} (${x.evaluacion.texto})` : "sin evaluar"}</li>)}</ul></div>}
-      <div><b>Análisis de Jarvis</b> <NivelBadge n="inferencia" /><ul className="list-disc pl-5 text-xs">{d.analisis.map((a) => <li key={a.id}>{a.titulo}{a.detalle ? `: ${a.detalle}` : ""}</li>)}</ul></div>
+      <div><b>Análisis de {asistente()}</b> <NivelBadge n="inferencia" /><ul className="list-disc pl-5 text-xs">{d.analisis.map((a) => <li key={a.id}>{a.titulo}{a.detalle ? `: ${a.detalle}` : ""}</li>)}</ul></div>
       {d.recomendaciones.length > 0 && <div><b>Para el siguiente periodo</b> <NivelBadge n="recomendacion" /><ul className="list-disc pl-5 text-xs">{d.recomendaciones.map((x) => <li key={x}>{x}</li>)}</ul></div>}
       {d.objetivos_proximo_mes && <div><b>Objetivos del próximo mes</b><ul className="list-disc pl-5 text-xs">{d.objetivos_proximo_mes.map((x) => <li key={x}>{x}</li>)}</ul></div>}
       <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -175,7 +176,7 @@ export function CoachTab() {
         <Card>
           <CardHeader><CardTitle>Coach</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <p className="text-xs text-muted-foreground">Entrenador de Jarvis con acceso de solo lectura a tus datos del gym ({c.data?.herramientas.length ?? "…"} herramientas: historial, ejercicios, progresión, récords, músculos, planificación, recuperación y decisiones). Puede proponer cambios, pero no aplicarlos. Prueba: «¿Qué entreno hoy?», «¿Estoy progresando en press banca?», «Analiza mis últimos 30 días».</p>
+            <p className="text-xs text-muted-foreground">Entrenador de {asistente()} con acceso de solo lectura a tus datos del gym ({c.data?.herramientas.length ?? "…"} herramientas: historial, ejercicios, progresión, récords, músculos, planificación, recuperación y decisiones). Puede proponer cambios, pero no aplicarlos. Prueba: «¿Qué entreno hoy?», «¿Estoy progresando en press banca?», «Analiza mis últimos 30 días».</p>
             {c.error && <ErrorState message={c.error} />}
             {!c.data && !c.error && <Loading rows={4} />}
             {c.data && !c.data.session && <p className="text-sm text-muted-foreground">Solo el administrador puede abrir el Coach.</p>}

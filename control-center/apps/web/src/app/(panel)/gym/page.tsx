@@ -18,6 +18,7 @@ import type { ExIndex } from "@/components/gym/common";
 import { useApi } from "@/lib/hooks";
 
 import { RegisterTab } from "@/components/gym/register";
+import { asistente } from "@/lib/asistente";
 
 const TABS = [
   ["overview", "Overview"], ["registrar", "Registrar"], ["training", "Training"], ["progress", "Progress"], ["recovery", "Recovery"],
@@ -39,7 +40,7 @@ function GymInner() {
     <>
       <PageHeader
         title={title}
-        description={detalle ? undefined : "Entrenas con Hevy como siempre; Jarvis planifica, analiza y te propone. Los entrenos salen de Areas/Gym.md."}
+        description={detalle ? undefined : `Entrenas con Hevy como siempre; ${asistente()} planifica, analiza y te propone. Los entrenos salen de Areas/Gym.md.`}
         actions={detalle && <button onClick={() => router.back()} className="-my-1 flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"><ArrowLeft className="size-4" /> Volver</button>}
       />
       <nav aria-label="Secciones del gym" className="-mx-1 mb-4 flex gap-1 overflow-x-auto border-b border-border px-1 pb-px">

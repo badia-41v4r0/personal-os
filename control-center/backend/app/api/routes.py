@@ -1,5 +1,6 @@
 """API v1 (M1): salud, autenticación, eventos (REST + WebSocket), auditoría, sistema y sesión principal."""
 import asyncio
+import re
 import base64
 import time
 
@@ -67,7 +68,53 @@ def logout(response: Response, p: Principal = Depends(current_principal), db: Se
 
 @router.get("/auth/me")
 def me(p: Principal = Depends(current_principal)):
-    return {"username": p.name, "role": p.user.role, "csrf_token": p.session.csrf_token}
+    return {"username": p.name, "role": p.user.role, "csrf_token": p.session.csrf_token,
+            "must_change_password": bool(p.user.must_change_password)}
+
+
+class CuentaIn(BaseModel):
+    actual: str = Field(min_length=1, max_length=256)
+    usuario: str | None = Field(None, max_length=32)
+    nueva: str | None = Field(None, max_length=256)
+
+
+USUARIO_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{2,31}$")
+
+
+@router.post("/auth/cuenta")
+def cambiar_cuenta(body: CuentaIn, request: Request, p: Principal = Depends(current_principal), db: Session = Depends(get_db)):
+    """Cambiar el nombre de usuario y/o la contraseña propios. Pide la contraseña actual y cierra las demás sesiones."""
+    from ..models import AuthSession, User
+    from ..security import hash_password, verify_password
+    user = db.get(User, p.user.id)
+    if not verify_password(user.password_hash, body.actual):
+        events.audit(db, p.name, "auth.cuenta", outcome="denied", ip=client_ip(request))
+        db.commit()
+        raise HTTPException(403, "La contraseña actual no es correcta")
+    usuario = (body.usuario or "").strip().lower() or None
+    if user.must_change_password and not body.nueva:
+        raise HTTPException(422, "Elige una contraseña nueva")
+    if usuario and usuario != user.username:
+        if not USUARIO_RE.match(usuario):
+            raise HTTPException(422, "Usuario: de 3 a 32 caracteres, minúsculas, números, punto, guion o guion bajo")
+        if db.scalar(select(User).where(User.username == usuario)):
+            raise HTTPException(409, "Ese usuario ya existe")
+    if body.nueva is not None:
+        if body.nueva.strip().lower() in ("admin", (usuario or user.username)) or body.nueva == body.actual:
+            raise HTTPException(422, "Elige una contraseña distinta de la actual y del usuario")
+        try:
+            user.password_hash = hash_password(body.nueva)
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+    antes = user.username
+    if usuario:
+        user.username = usuario
+    user.must_change_password = False
+    for s in db.scalars(select(AuthSession).where(AuthSession.user_id == user.id, AuthSession.id != p.session.id)):
+        db.delete(s)  # las demás sesiones abiertas dejan de valer
+    events.audit(db, user.username, "auth.cuenta", target=antes, usuario_cambiado=bool(usuario and usuario != antes),
+                 contrasena_cambiada=body.nueva is not None, ip=client_ip(request))
+    return {"username": user.username, "must_change_password": False}
 
 
 # ---------- eventos ----------

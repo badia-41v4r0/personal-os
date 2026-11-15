@@ -11,6 +11,7 @@ import { api, post } from "@/lib/api";
 import { timeAgo } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import { currentEndpointActive, disablePushHere, enablePush, isInstalled, isIOS, pushSupported, type PushConfig } from "@/lib/push";
+import { asistente } from "@/lib/asistente";
 
 type Aviso = { id: number; ts: string; level: string; title: string; body: string; url: string; read: boolean; pushed: number };
 
@@ -47,7 +48,7 @@ function Device({ onChange }: { onChange: () => void }) {
         <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
           <li>Abre esta página en Safari.</li>
           <li>Toca Compartir y luego «Añadir a pantalla de inicio».</li>
-          <li>Abre Jarvis desde ese icono, entra y vuelve aquí.</li>
+          <li>Abre {asistente()} desde ese icono, entra y vuelve aquí.</li>
         </ol>
       </div>
     );
@@ -137,7 +138,7 @@ export default function AvisosPage() {
     <>
       <PageHeader
         title="Avisos"
-        description="Todo lo que Jarvis te notifica. Lo que no suene en el móvil también queda aquí."
+        description={`Todo lo que ${asistente()} te notifica. Lo que no suene en el móvil también queda aquí.`}
         actions={unread > 0 ? <Button variant="outline" onClick={() => act(() => post("/notifications/read-all"))}>Marcar todo como leído</Button> : undefined}
       />
       <div className="grid gap-4 lg:grid-cols-3">

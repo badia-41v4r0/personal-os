@@ -20,6 +20,7 @@ from .config import get_settings
 from .db import get_db, utcnow
 from .models import Approval
 from .security import Principal, current_principal, require_admin
+from .marca import asistente
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(current_principal)])
 
@@ -44,7 +45,7 @@ def _impact(p: dict) -> str:
     if p.get("sustituye"):
         s += " Sustituye al existente."
     if "Bash" in (p.get("herramientas") or []):
-        s += " ⚠️ Pide Bash: Jarvis solo puede ejecutar los comandos que ya tiene permitidos."
+        s += f" ⚠️ Pide Bash: {asistente()} solo puede ejecutar los comandos que ya tiene permitidos."
     return s
 
 

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { timeAgo } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
+import { asistente } from "@/lib/asistente";
 
 type Commit = { hash: string; author: string; date: string; subject: string };
 type Local = { clonada: boolean; rama_actual?: string; principal?: string; staging?: boolean; staging_por_delante?: number | null; staging_por_detras?: number | null; ultimo_commit?: Commit | null };
@@ -53,7 +54,7 @@ function Detail({ name }: { name: string }) {
           <Card>
             <CardHeader><CardTitle>Encargos del programador</CardTitle></CardHeader>
             <CardContent>
-              {p.encargos.length === 0 && <p className="text-sm text-muted-foreground">Ninguno todavía. Se los pides a Jarvis desde el chat.</p>}
+              {p.encargos.length === 0 && <p className="text-sm text-muted-foreground">Ninguno todavía. Se los pides a {asistente()} desde el chat.</p>}
               <ul className="divide-y divide-border">
                 {p.encargos.map((e) => (
                   <li key={e.path} className="py-2 text-sm">

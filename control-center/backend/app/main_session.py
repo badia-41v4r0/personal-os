@@ -19,6 +19,7 @@ from .adapters import hostagent, transcript
 from .config import get_settings
 from .db import session_scope, utcnow
 from .models import AgentRun, ChatSession, Message
+from .marca import asistente
 
 MAIN_ID = "main"
 TURN_TIMEOUT = timedelta(minutes=20)
@@ -32,7 +33,7 @@ _current: dict[str, str | None] = {"run": None}
 def ensure_main_session() -> None:
     with session_scope() as db:
         if db.get(ChatSession, MAIN_ID) is None:
-            db.add(ChatSession(id=MAIN_ID, kind="main", name="Jarvis (compartida con Telegram)",
+            db.add(ChatSession(id=MAIN_ID, kind="main", name=f"{asistente()} (compartida con Telegram)",
                                description="Sesión principal en tmux; la misma que usa Telegram, la voz y los timers.",
                                agent_id=None, workdir="/workspace", model="sonnet"))
         # Recuperación: lo que quedó a medias al pararse el backend no se reenvía (podría duplicarse)

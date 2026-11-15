@@ -37,7 +37,7 @@ Qué hace, en orden:
 5. Instala dependencias, compila la web y construye las imágenes de Docker con el nombre de la instancia.
 6. Instala los servicios de tu usuario (`<instancia>-cc-backend`, `<instancia>-cc-hostagent` y la copia nocturna).
    Los temporizadores de cada módulo se encienden cuando activas el módulo.
-7. Crea tu usuario del panel (te pide la contraseña).
+7. Crea el usuario inicial **`admin` / `admin`** (o el de `--usuario`, pidiendo su contraseña).
 
 Con `--simular` enseña todo lo anterior sin escribir nada.
 
@@ -46,8 +46,12 @@ con otro `--instancia`. Cada una tiene sus contenedores, servicios, puertos, bas
 
 ## Primer uso
 
-Abre `http://127.0.0.1:<puerto>`. La bienvenida tiene tres pasos:
-1. **Tú:** cómo quieres que te llame y tus áreas (agrupan las tareas).
+Abre `http://127.0.0.1:<puerto>` y entra con `admin` / `admin`. Lo primero es elegir una contraseña tuya (y, si
+quieres, otro usuario): hasta entonces el panel no deja hacer nada más. Se cambian después en Configuración → Cuenta.
+Si la olvidas: `cd control-center/backend && set -a && . ../../data/control-center/secrets.env && set +a && .venv/bin/python -m app.cli set-password <usuario>` en el PC.
+
+La bienvenida tiene tres pasos:
+1. **Tú:** cómo quieres que te llame, cómo se llama tu asistente (por defecto Jarvis) y tus áreas (agrupan las tareas).
 2. **Motor de IA:** ver [motores-de-ia.md](motores-de-ia.md). Con Claude, antes ejecuta `claude setup-token` y pon el
    token en `.env` (`CLAUDE_CODE_OAUTH_TOKEN=`); después `bin/pos actualizar`.
 3. **Módulos:** activa solo lo que vayas a usar.

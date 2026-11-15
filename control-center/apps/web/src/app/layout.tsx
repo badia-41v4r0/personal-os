@@ -6,12 +6,12 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Jarvis Control Center",
-  description: "Centro de control privado de Jarvis",
+  title: "Personal OS",
+  description: "Tu asistente personal, en tu PC",
   robots: { index: false, follow: false },
   manifest: "/manifest.webmanifest",
-  applicationName: "Jarvis",
-  appleWebApp: { capable: true, title: "Jarvis", statusBarStyle: "black-translucent" },
+  applicationName: "Personal OS",
+  appleWebApp: { capable: true, title: "Personal OS", statusBarStyle: "black-translucent" },
   icons: { icon: "/icons/icon-192.png", apple: "/icons/icon-180.png" },
 };
 
