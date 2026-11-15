@@ -1,0 +1,19 @@
+# Instalado en ~/.config/systemd/user/ (bin del Control Center: control-center/deployment/instalar.sh)
+[Unit]
+Description=@INST@ panel: Host Agent (capacidades limitadas del host)
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+EnvironmentFile=@ROOT@/data/control-center/secrets.env
+WorkingDirectory=@ROOT@/control-center/backend
+ExecStart=@ROOT@/control-center/backend/.venv/bin/python ../host-agent/hostagent.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+UMask=0077
+PrivateTmp=yes
+MemoryMax=256M
+CPUQuota=25%
+
+[Install]
+WantedBy=default.target

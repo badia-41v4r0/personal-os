@@ -1,0 +1,154 @@
+# Nombre de la instancia, puertos y zona horaria: .env (POS_INSTANCE, POS_DB_PORT, POS_TZ). Ver .env.example.
+name: ${POS_INSTANCE:-jarvis}
+services:
+  jarvis:
+    build: .
+    image: ${POS_INSTANCE:-jarvis}:local
+    container_name: ${POS_INSTANCE:-jarvis}
+    restart: unless-stopped
+    init: true
+    # Sin sesión constante: el contenedor solo presta Whisper (voz y vídeos), sin modelo y sin tokens.
+    # Los turnos corren en contenedores efímeros con la misma imagen.
+    entrypoint: ["sleep", "infinity"]
+    env_file: .env
+    environment:
+      TZ: ${POS_TZ:-Europe/Madrid}
+      HOME: /home/node
+      DISABLE_AUTOUPDATER: "1"
+      GCAL_DIR: /run/jarvis-secrets
+      CLAUDE_CODE_OAUTH_TOKEN: ""
+      TELEGRAM_BOT_TOKEN: ""
+    volumes:
+      # Estado de Claude Code (login, plugins, emparejamiento de Telegram, historial)
+      - ./data/home:/home/node
+      # Instrucciones y permisos del agente (solo lectura: Jarvis no puede cambiar sus propias reglas)
+      - ./agent:/workspace:ro
+      - ./collectors:/workspace/collectors:ro
+      # Vault: todo en solo lectura menos la carpeta Jarvis/
+      - ./Jarvis-Vault:/vault:ro
+      - ./Jarvis-Vault/Jarvis:/vault/Jarvis:rw
+      # Instrucciones y datos de los scripts: Jarvis los lee pero no puede cambiarlos
+      - ./Jarvis-Vault/Jarvis/Sistema:/vault/Jarvis/Sistema:ro
+      # Credenciales de Google Calendar: solo las usa collectors/gcal.py (Jarvis tiene prohibido leerlas)
+      - ./secrets:/run/jarvis-secrets:ro
+      # Voz en el PC: audios a transcribir (entrada) y respuestas habladas de Jarvis (salida)
+      - ./data/voz:/voz
+      # Repos de GitHub en solo lectura: Jarvis puede leer código y documentación, nunca tocarlo
+      - ./repos:/repos:ro
+      # Carpeta común de archivos (adjuntos del panel). Jarvis la lee y la ordena con collectors/archivos.py
+      - ./archivos:/archivos
+    # Aislamiento
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    # Límites para no afectar al uso diario del PC
+    mem_limit: 2g
+    cpus: 2
+    pids_limit: 512
+    # Sin puertos publicados: Telegram funciona con conexiones salientes.
+    # Red por defecto de Docker: Cloudflare WARP bloquea las redes nuevas que crea compose.
+    network_mode: bridge
+
+  # Base de datos del Personal OS. Datos en data/postgres; solo escucha en 127.0.0.1.
+  # La crea y migra control-center/deployment/pasar-a-postgres.sh, que genera data/control-center/pg.env
+  pos-db:
+    image: pgvector/pgvector:pg17
+    profiles: ["pos"]
+    container_name: ${POS_INSTANCE:-jarvis}-db
+    restart: unless-stopped
+    user: "1000:1000"
+    env_file:
+      - path: ./data/control-center/pg.env
+        required: false
+    environment:
+      TZ: ${POS_TZ:-Europe/Madrid}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${POS_DB_PORT:-55433}:5432"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+      - /run/postgresql:size=8m,uid=1000,gid=1000
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 128
+    network_mode: bridge
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jarvis -d personal_os"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Programador: se lanza bajo demanda (bin/programador.sh), uno por encargo. Sin credenciales de GitHub:
+  # trabaja y commitea en local; el host sube la rama staging y abre el PR.
+  programador:
+    image: ${POS_INSTANCE:-jarvis}:local
+    profiles: ["programador"]
+    init: true
+    entrypoint: ["/opt/jarvis/bin/programador-run"]
+    environment:
+      TZ: ${POS_TZ:-Europe/Madrid}
+      HOME: /home/node
+      DISABLE_AUTOUPDATER: "1"
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN}
+      # Identidad de los commits: el programador no puede usar git config
+      GIT_AUTHOR_NAME: Jarvis Programador
+      GIT_AUTHOR_EMAIL: programador@jarvis.local
+      GIT_COMMITTER_NAME: Jarvis Programador
+      GIT_COMMITTER_EMAIL: programador@jarvis.local
+    volumes:
+      - ./data/programador-home:/home/node
+      - ./programador/managed-settings.json:/etc/claude-code/managed-settings.json:ro
+      - ./programador/instrucciones.md:/opt/programador/instrucciones.md:ro
+      - ./bin/programador-run:/opt/jarvis/bin/programador-run:ro
+      - ./programador/puente.js:/opt/programador/puente.js:ro
+      # La repo (/repo) y la carpeta de salida (/salida) las monta bin/programador.sh en cada encargo
+    read_only: true
+    tmpfs:
+      - /tmp:size=1g
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 4g
+    cpus: 4
+    pids_limit: 1024
+    # Sin red: su única salida es el proxy de bin/programador.sh, con lista cerrada de dominios
+    network_mode: none
+
+  # Ayudante: tareas generales que el usuario encarga desde el panel (bin/ayudante.sh, una por tarea).
+  # Solo ve su carpeta (/trabajo, la monta el script) y la vault en solo lectura; tiene web, pero
+  # sin Python, node ni credenciales (permisos en ayudante/managed-settings.json).
+  ayudante:
+    image: ${POS_INSTANCE:-jarvis}:local
+    profiles: ["ayudante"]
+    init: true
+    entrypoint: ["/opt/ayudante/run"]
+    environment:
+      TZ: ${POS_TZ:-Europe/Madrid}
+      HOME: /home/node
+      DISABLE_AUTOUPDATER: "1"
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN}
+    volumes:
+      - ./data/ayudante-home:/home/node
+      - ./ayudante/managed-settings.json:/etc/claude-code/managed-settings.json:ro
+      - ./ayudante/instrucciones.md:/opt/ayudante/instrucciones.md:ro
+      - ./bin/ayudante-run:/opt/ayudante/run:ro
+      - ./Jarvis-Vault:/vault:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 2g
+    cpus: 2
+    pids_limit: 512
+    network_mode: bridge

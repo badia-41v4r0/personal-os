@@ -1,0 +1,8 @@
+[Unit]
+Description=@INST@: crear repos privadas de GitHub
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+Type=oneshot
+ExecStart=@ROOT@/bin/crear-repo.sh
+TimeoutStartSec=15min

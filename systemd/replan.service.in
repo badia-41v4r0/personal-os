@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@: recalcular el plan de estudio con lo hecho
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+Type=oneshot
+WorkingDirectory=@ROOT@/collectors
+ExecStart=/usr/bin/python3 build.py --sin-github
+ExecStart=/usr/bin/python3 planificador.py

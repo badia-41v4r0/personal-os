@@ -1,0 +1,17 @@
+[Unit]
+Description=Jarvis por voz en el PC (palabra de activación «hey/oye Jarvis»)
+After=pipewire.service docker.service
+PartOf=graphical-session.target
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+WorkingDirectory=@ROOT@
+ExecStart=@ROOT@/voz/.venv/bin/python @ROOT@/voz/jarvis_voz.py
+Restart=on-failure
+RestartSec=10
+# Ligero: no debe notarse en el uso diario (Whisper va en la GPU)
+CPUQuota=100%
+MemoryMax=3G
+
+[Install]
+WantedBy=graphical-session.target

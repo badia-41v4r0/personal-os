@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Dentro del contenedor de una sesión con un proveedor que no es Claude (Codex, OpenCode): no hay red propia.
+# Abre el puente hacia el proxy de salida (que solo deja los dominios de su API) y ejecuta la CLI. El mensaje entra por stdin.
+set -euo pipefail
+node /opt/sesion/puente.js &
+export HTTPS_PROXY=http://127.0.0.1:3128 HTTP_PROXY=http://127.0.0.1:3128 NO_PROXY=localhost,127.0.0.1
+exec "$@"

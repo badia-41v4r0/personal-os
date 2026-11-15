@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@: vigilar la cola de repos nuevas de GitHub
+
+[Path]
+PathExistsGlob=@ROOT@/Jarvis-Vault/Jarvis/Repos/cola/*.md
+Unit=@INST@-repos.service
+
+[Install]
+WantedBy=default.target

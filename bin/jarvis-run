@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Encarga una orden al runtime bajo demanda: la recoge el panel. El resultado llega como aviso o, con --voz, en voz alta.
+# Uso: bin/jarvis-run "orden" [--voz ID]
+set -euo pipefail
+D="$(cd "$(dirname "$0")/.." && pwd)/data/control-center/ordenes"
+VOZ=""
+[ "${2:-}" = "--voz" ] && VOZ="${3:-}"
+mkdir -p -m 700 "$D"
+T=$(mktemp "$D/.tmp.XXXXXX")
+jq -n --arg text "$1" --arg voz "$VOZ" '{text: $text, voz: $voz}' > "$T"
+mv "$T" "$D/$(date +%s%N)-$$.json"

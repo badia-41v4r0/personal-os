@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Dependencias
+        working-directory: control-center/backend
+        run: uv sync --frozen
+      - name: Pruebas (backend y Host Agent, SQLite)
+        working-directory: control-center/backend
+        env:
+          CC_DB_URL: ""
+        run: .venv/bin/pytest -q -p no:cacheprovider
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: control-center/apps/web/package-lock.json
+      - working-directory: control-center/apps/web
+        run: npm ci --no-fund --no-audit
+      - name: Tipos y lint
+        working-directory: control-center/apps/web
+        run: npx tsc --noEmit -p . && npx eslint src --quiet
+      - name: Compilar
+        working-directory: control-center/apps/web
+        run: npm run build
+
+  instalador:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sintaxis de los scripts
+        run: for f in bin/*; do head -1 "$f" | grep -q bash && bash -n "$f"; done; echo ok
+
+  secretos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

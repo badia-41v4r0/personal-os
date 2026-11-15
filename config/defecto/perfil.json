@@ -1,0 +1,9 @@
+{
+  "nombre": "",
+  "idioma": "es",
+  "areas": [
+    {"id": "trabajo", "nombre": "Trabajo", "emoji": "💼"},
+    {"id": "uni", "nombre": "Estudios", "emoji": "🎓"},
+    {"id": "personal", "nombre": "Personal", "emoji": "🏠"}
+  ]
+}

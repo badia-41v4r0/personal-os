@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Dentro del contenedor del ayudante: ejecuta una tarea con Claude Code en modo no interactivo.
+set -euo pipefail
+: "${CLAUDE_CODE_OAUTH_TOKEN:?falta el token}"
+CFG="$HOME/.claude.json"
+[ -f "$CFG" ] || echo '{}' > "$CFG"
+tmp=$(mktemp); jq '.hasCompletedOnboarding = true | .projects["/trabajo"].hasTrustDialogAccepted = true' "$CFG" > "$tmp" && cat "$tmp" > "$CFG"
+cd /trabajo
+claude -p "$(cat /trabajo/.tarea.md)" \
+  --model "${MODELO:-sonnet}" \
+  --permission-mode dontAsk \
+  --add-dir /vault \
+  --append-system-prompt "$(cat /opt/ayudante/instrucciones.md)" \
+  > /trabajo/.registro.txt 2>&1 || echo "claude terminó con error $?" >> /trabajo/.registro.txt
+[ -f /trabajo/resultado.md ] || { echo "(El ayudante no dejó resultado. Últimas líneas del registro:)"; tail -20 /trabajo/.registro.txt; } > /trabajo/resultado.md

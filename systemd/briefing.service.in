@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@: briefing de la mañana por Telegram
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+Type=oneshot
+WorkingDirectory=@ROOT@
+# Regenera Panel y digest, cierra ayer si quedó abierto y lanza el briefing
+ExecStart=@ROOT@/bin/manana.sh

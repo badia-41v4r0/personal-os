@@ -1,0 +1,10 @@
+{
+  "proveedor": "claude",
+  "relevo": true,
+  "modelos": {
+    "claude": {"fast": "sonnet", "standard": "sonnet", "deep": "opus", "code": "sonnet"},
+    "codex": {"fast": "", "standard": "", "deep": "", "code": ""},
+    "opencode": {"fast": "", "standard": "", "deep": "", "code": ""}
+  },
+  "limite_mensual_usd": 10
+}

@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@: comprobar cada día a las 10:00 si hay que renovar el permiso de Google
+
+[Timer]
+OnCalendar=*-*-* 10:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

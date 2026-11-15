@@ -1,0 +1,8 @@
+[Unit]
+Description=@INST@: procesar encargos de código
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+Type=oneshot
+ExecStart=@ROOT@/bin/programador.sh
+TimeoutStartSec=6h

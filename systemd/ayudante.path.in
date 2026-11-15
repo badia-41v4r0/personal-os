@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@: vigilar la cola de tareas del ayudante
+
+[Path]
+PathExistsGlob=@ROOT@/Jarvis-Vault/Jarvis/Ayudante/cola/*.md
+Unit=@INST@-ayudante.service
+
+[Install]
+WantedBy=default.target

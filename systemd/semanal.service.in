@@ -1,0 +1,10 @@
+[Unit]
+Description=@INST@: revisión semanal (gym y estudio) con subagentes
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+Type=oneshot
+WorkingDirectory=@ROOT@
+ExecStart=/usr/bin/python3 collectors/build.py --sin-github
+ExecStart=/usr/bin/python3 collectors/semanal.py
+ExecStart=@ROOT@/bin/@INST@-rutina semanal "Lee /vault/Jarvis/Sistema/revision-semanal.md y ejecútala."

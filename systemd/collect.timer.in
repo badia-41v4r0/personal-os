@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@: recopiladores a las 6:50
+
+[Timer]
+OnCalendar=*-*-* 06:50:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

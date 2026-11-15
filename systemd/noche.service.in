@@ -1,0 +1,7 @@
+[Unit]
+Description=@INST@: recordatorio de cierre del día
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+Type=oneshot
+ExecStart=@ROOT@/bin/noche.sh

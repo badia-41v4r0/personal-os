@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Encarga una rutina programada (briefing, revisión…) al sistema bajo demanda. Corre con permiso para escribir en Jarvis/,
+# y su respuesta final es el aviso que recibe el usuario.
+# Uso: bin/jarvis-rutina <nombre> "orden"
+set -euo pipefail
+D="$(cd "$(dirname "$0")/.." && pwd)/data/control-center/ordenes"
+mkdir -p -m 700 "$D"
+T=$(mktemp "$D/.tmp.XXXXXX")
+jq -n --arg rutina "$1" --arg text "$2" '{rutina: $rutina, text: $text}' > "$T"
+mv "$T" "$D/$(date +%s%N)-$$.json"

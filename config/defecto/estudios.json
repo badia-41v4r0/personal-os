@@ -1,0 +1,7 @@
+{
+  "plataforma": {"nombre": "", "url": "", "centro": "", "tipo": "", "dominios": []},
+  "asignaturas": [],
+  "disponibilidad": {"lunes": [], "martes": [], "miercoles": [], "jueves": [], "viernes": [], "sabado": [], "domingo": []},
+  "descansos": [],
+  "criterio": "temprana"
+}

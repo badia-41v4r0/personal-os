@@ -1,0 +1,249 @@
+#!/usr/bin/env bash
+# Personal OS: instalar, comprobar, actualizar y desinstalar una instancia en este PC (Linux con systemd).
+#
+#   bin/pos instalar [--instancia NOMBRE] [--puerto N] [--usuario NOMBRE] [--sin-ordenadores] [--simular]
+#   bin/pos comprobar          requisitos, servicios y salud del panel
+#   bin/pos actualizar         recompila y reinicia (no toca tus datos)
+#   bin/pos desinstalar [--borrar-datos]
+#   bin/pos estado
+#
+# Varias instancias pueden convivir en el mismo PC: cada una tiene su nombre (POS_INSTANCE), sus puertos, sus
+# contenedores, sus servicios y su carpeta. Nunca abre puertos fuera de 127.0.0.1 ni toca configuración del sistema:
+# lo que necesite permisos (linger, Tailscale) lo explica y lo haces tú.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CC="$ROOT/control-center"
+UNITS="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+SIMULAR=0
+VERDE=$'\e[32m'; ROJO=$'\e[31m'; AMARILLO=$'\e[33m'; NORMAL=$'\e[0m'
+ok() { printf '%s✓%s %s\n' "$VERDE" "$NORMAL" "$*"; }
+aviso() { printf '%s!%s %s\n' "$AMARILLO" "$NORMAL" "$*"; }
+fallo() { printf '%s✗%s %s\n' "$ROJO" "$NORMAL" "$*" >&2; }
+muere() { fallo "$*"; exit 1; }
+hacer() {  # ejecuta, o solo lo enseña con --simular
+  if [ "$SIMULAR" = 1 ]; then printf '  (simulado) %s\n' "$*"; else "$@"; fi
+}
+
+leer_env() {  # leer_env ARCHIVO CLAVE → valor (sin ejecutar el archivo)
+  [ -f "$1" ] && sed -n "s/^$2=//p" "$1" | tail -1 || true
+}
+
+poner_env() {  # poner_env ARCHIVO CLAVE VALOR (crea o sustituye; permisos 600)
+  local f="$1" k="$2" v="$3"
+  [ "$SIMULAR" = 1 ] && { printf '  (simulado) %s: %s=%s\n' "${f#"$ROOT"/}" "$k" "$([ "${k%TOKEN*}" != "$k" ] || [ "${k%KEY*}" != "$k" ] && echo '***' || echo "$v")"; return; }
+  touch "$f"; chmod 600 "$f"
+  if grep -q "^$k=" "$f"; then
+    local tmp; tmp=$(mktemp); grep -v "^$k=" "$f" > "$tmp"; cat "$tmp" > "$f"; rm -f "$tmp"
+  fi
+  printf '%s=%s\n' "$k" "$v" >> "$f"
+}
+
+aleatorio() { python3 -c 'import secrets;print(secrets.token_hex(32))'; }
+
+puerto_libre() {  # primer puerto libre desde $1
+  local p="$1"
+  while ss -ltnH "sport = :$p" 2>/dev/null | grep -q .; do p=$((p + 1)); done
+  echo "$p"
+}
+
+# ---------- requisitos ----------
+
+version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]; }
+
+comprobar_requisitos() {
+  local faltan=0
+  [ "$(uname -s)" = Linux ] && ok "Linux" || { fallo "Solo Linux en esta versión"; faltan=1; }
+  command -v systemctl >/dev/null && systemctl --user show-environment >/dev/null 2>&1 && ok "systemd de usuario" || { fallo "Hace falta systemd con sesión de usuario"; faltan=1; }
+  if command -v docker >/dev/null && docker info >/dev/null 2>&1; then ok "Docker"; else fallo "Docker no está instalado o tu usuario no puede usarlo (grupo docker)"; faltan=1; fi
+  docker compose version >/dev/null 2>&1 && ok "docker compose" || { fallo "Falta el plugin docker compose"; faltan=1; }
+  local py; py=$(python3 -c 'import sys;print("%d.%d"%sys.version_info[:2])' 2>/dev/null || echo 0)
+  version_ge "$py" 3.12 && ok "Python $py" || { fallo "Hace falta Python 3.12 o más (tienes $py)"; faltan=1; }
+  command -v uv >/dev/null && ok "uv" || { fallo "Falta uv (https://docs.astral.sh/uv/)"; faltan=1; }
+  local nv; nv=$(node -v 2>/dev/null | tr -d v || echo 0)
+  version_ge "$nv" 20 && ok "Node $nv" || { fallo "Hace falta Node 20 o más"; faltan=1; }
+  command -v git >/dev/null && ok "git" || { fallo "Falta git"; faltan=1; }
+  command -v ss >/dev/null || aviso "Sin «ss»: no puedo comprobar si el puerto está libre"
+  # Opcionales
+  for c in claude codex opencode antigravity; do command -v "$c" >/dev/null && ok "CLI $c (motor de IA)"; done
+  command -v claude >/dev/null || command -v codex >/dev/null || command -v opencode >/dev/null || aviso "Ninguna CLI de IA en el PC: podrás elegirla en el onboarding (Claude necesita «claude setup-token»)"
+  command -v gh >/dev/null && ok "gh (módulo Proyectos)" || aviso "Sin gh: el módulo Proyectos no podrá hablar con GitHub"
+  command -v tailscale >/dev/null && ok "Tailscale (acceso desde el móvil)" || aviso "Sin Tailscale: el panel solo se verá desde este PC"
+  command -v nvidia-smi >/dev/null && ok "GPU NVIDIA (voz más rápida)"
+  command -v ollama >/dev/null && ok "Ollama (búsqueda semántica)" || aviso "Sin Ollama: la memoria busca solo por texto"
+  command -v yt-dlp >/dev/null && command -v ffmpeg >/dev/null && ok "yt-dlp y ffmpeg (módulo Vídeos)"
+  loginctl show-user "$USER" -p Linger 2>/dev/null | grep -q yes && ok "linger (servicios activos sin sesión abierta)" || \
+    aviso "Sin linger: los servicios se paran al cerrar sesión. Para dejarlos siempre activos: sudo loginctl enable-linger $USER"
+  return $faltan
+}
+
+# ---------- instalar ----------
+
+render_unidades() {  # instancia, puerto, zona → ~/.config/systemd/user/<instancia>-*
+  local inst="$1" port="$2" tz="$3" destino="$4"
+  mkdir -p "$destino"
+  for f in "$ROOT"/systemd/*.in; do
+    local nombre; nombre="$(basename "$f" .in)"
+    sed -e "s#@ROOT@#$ROOT#g" -e "s#@INST@#$inst#g" -e "s#@PORT@#$port#g" -e "s#@TZ@#$tz#g" "$f" > "$destino/$inst-$nombre"
+  done
+}
+
+instalar() {
+  local inst="" port="" usuario="" sin_vc=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --instancia) inst="$2"; shift 2 ;;
+      --puerto) port="$2"; shift 2 ;;
+      --usuario) usuario="$2"; shift 2 ;;
+      --sin-ordenadores) sin_vc=1; shift ;;
+      --simular) SIMULAR=1; shift ;;
+      *) muere "Opción desconocida: $1" ;;
+    esac
+  done
+  echo "== Requisitos"
+  comprobar_requisitos || muere "Instala lo que falta y vuelve a ejecutar «bin/pos instalar»."
+
+  echo "== Instancia"
+  local previa; previa="$(leer_env "$ROOT/.env" POS_INSTANCE)"
+  inst="${inst:-${previa:-pos}}"
+  [[ "$inst" =~ ^[a-z][a-z0-9-]{1,15}$ ]] || muere "Nombre de instancia no válido: minúsculas, cifras y guiones (2–16)"
+  [ -n "$previa" ] && [ "$previa" != "$inst" ] && muere "Esta carpeta ya es la instancia «$previa». Para otra, clona el proyecto en otra carpeta."
+  local otra; otra="$(sed -n 's#^WorkingDirectory=\(.*\)/control-center/backend$#\1#p' "$UNITS/$inst-cc-backend.service" 2>/dev/null || true)"
+  [ -n "$otra" ] && [ "$otra" != "$ROOT" ] && muere "Ya hay una instancia «$inst» instalada en $otra. Elige otro nombre con --instancia."
+  local tz; tz="$(leer_env "$ROOT/.env" POS_TZ)"; tz="${tz:-$(timedatectl show -p Timezone --value 2>/dev/null || echo Europe/Madrid)}"
+  port="${port:-$(leer_env "$ROOT/.env" POS_PORT)}"; port="${port:-$(puerto_libre 8770)}"
+  local dbport; dbport="$(leer_env "$ROOT/.env" POS_DB_PORT)"; dbport="${dbport:-$(puerto_libre 55433)}"
+  ok "Instancia «$inst» · panel en 127.0.0.1:$port · zona $tz"
+
+  echo "== Configuración y secretos (archivos 600, fuera de git)"
+  hacer mkdir -p "$ROOT/data/control-center" "$ROOT/data/config" "$ROOT/archivos" "$ROOT/secrets"
+  [ "$SIMULAR" = 1 ] || chmod 700 "$ROOT/data" "$ROOT/data/control-center" "$ROOT/data/config" "$ROOT/archivos" "$ROOT/secrets"
+  local ENVF="$ROOT/.env" SEC="$ROOT/data/control-center/secrets.env"
+  poner_env "$ENVF" POS_INSTANCE "$inst"
+  poner_env "$ENVF" POS_TZ "$tz"
+  poner_env "$ENVF" POS_PORT "$port"
+  poner_env "$ENVF" POS_DB_PORT "$dbport"
+  grep -q '^CLAUDE_CODE_OAUTH_TOKEN=' "$ENVF" 2>/dev/null || poner_env "$ENVF" CLAUDE_CODE_OAUTH_TOKEN ""
+  [ -n "$(leer_env "$SEC" CC_HOSTAGENT_TOKEN)" ] || poner_env "$SEC" CC_HOSTAGENT_TOKEN "$(aleatorio)"
+  [ -n "$(leer_env "$SEC" CC_BACKUP_KEY)" ] || poner_env "$SEC" CC_BACKUP_KEY "$(python3 -c 'import secrets;print(secrets.token_urlsafe(32))')"
+  [ -n "$(leer_env "$SEC" CC_ALLOWED_ORIGINS)" ] || poner_env "$SEC" CC_ALLOWED_ORIGINS "http://127.0.0.1:$port,http://localhost:$port"
+  [ -n "$(leer_env "$SEC" CC_COOKIE_SECURE)" ] || poner_env "$SEC" CC_COOKIE_SECURE 0  # HTTP local; con Tailscale Serve, 1
+  poner_env "$SEC" POS_INSTANCE "$inst"
+  poner_env "$SEC" POS_TZ "$tz"
+
+  echo "== Vault"
+  if [ -d "$ROOT/Jarvis-Vault" ]; then ok "Ya existe Jarvis-Vault/: no se toca"
+  else hacer cp -r "$ROOT/plantilla/vault" "$ROOT/Jarvis-Vault"; ok "Vault creada desde la plantilla"; fi
+
+  echo "== Backend y web"
+  hacer bash -c "cd '$CC/backend' && uv sync --frozen"
+  hacer bash -c "cd '$CC/apps/web' && npm ci --no-fund --no-audit && npm run build"
+
+  echo "== Imágenes de Docker (con el nombre de la instancia)"
+  hacer docker build -t "$inst:local" --build-arg "TZ=$tz" "$ROOT"
+  hacer docker build -t "$inst-vc:egress" --build-arg "TZ=$tz" "$CC/virtual-computers/egress"
+  if [ "$sin_vc" = 0 ]; then
+    for t in terminal desktop canvas aplicaciones; do hacer docker build --target "$t" -t "$inst-vc:$t" --build-arg "TZ=$tz" "$CC/virtual-computers/images"; done
+  else aviso "Sin ordenadores virtuales (--sin-ordenadores): el tutor no podrá abrir tu campus ni compilar"; fi
+
+  echo "== Servicios de systemd (de tu usuario)"
+  if [ "$SIMULAR" = 1 ]; then
+    local tmp; tmp="$(mktemp -d)"; render_unidades "$inst" "$port" "$tz" "$tmp"
+    printf '  (simulado) unidades en %s: %s\n' "$UNITS" "$(ls "$tmp" | tr '\n' ' ')"; rm -rf "$tmp"
+  else
+    render_unidades "$inst" "$port" "$tz" "$UNITS"
+    systemctl --user daemon-reload
+    systemctl --user enable --now "$inst-cc-hostagent.service" "$inst-cc-backend.service" "$inst-cc-backup.timer"
+    systemctl --user restart "$inst-cc-hostagent.service" "$inst-cc-backend.service"
+  fi
+  ok "Los temporizadores de cada módulo se encienden al activarlo en el panel"
+
+  echo "== Usuario del panel"
+  usuario="${usuario:-$USER}"
+  if [ "$SIMULAR" = 1 ]; then printf '  (simulado) crear el usuario «%s»\n' "$usuario"
+  else
+    (cd "$CC/backend" && set -a && . "$SEC" && set +a && .venv/bin/alembic upgrade head >/dev/null && .venv/bin/python -m app.cli set-password "$usuario")
+  fi
+
+  if [ "$SIMULAR" = 0 ]; then
+    for _ in $(seq 1 20); do curl -sf "http://127.0.0.1:$port/api/v1/health" >/dev/null && break; sleep 1; done
+    curl -sf "http://127.0.0.1:$port/api/v1/health" >/dev/null && ok "Panel en marcha" || aviso "El panel no responde todavía: mira «journalctl --user -u $inst-cc-backend -n 50»"
+  fi
+  cat <<EOF
+
+Listo. Abre http://127.0.0.1:$port y entra con «$usuario»: el asistente de bienvenida te guía (motor de IA, módulos y cuentas).
+
+Para usarlo desde el móvil (opcional, con Tailscale, solo dentro de tu red privada):
+  tailscale serve --bg --https=$port http://127.0.0.1:$port
+y añade la dirección https://<tu-equipo>.<tu-tailnet>.ts.net:$port a CC_ALLOWED_ORIGINS en data/control-center/secrets.env,
+con CC_COOKIE_SECURE=1. Después: bin/pos actualizar
+EOF
+}
+
+# ---------- resto de órdenes ----------
+
+instancia_actual() {
+  local i; i="$(leer_env "$ROOT/.env" POS_INSTANCE)"
+  [ -n "$i" ] || muere "Esta carpeta no tiene ninguna instancia instalada (bin/pos instalar)"
+  echo "$i"
+}
+
+estado() {
+  local inst port; inst="$(instancia_actual)"; port="$(leer_env "$ROOT/.env" POS_PORT)"
+  echo "Instancia «$inst» en $ROOT (panel 127.0.0.1:$port)"
+  systemctl --user list-units --all --plain --no-legend "$inst-*" 2>/dev/null | awk '{printf "  %-40s %s %s\n", $1, $3, $4}'
+  curl -sf "http://127.0.0.1:$port/api/v1/health" >/dev/null && ok "Panel responde" || fallo "El panel no responde"
+}
+
+comprobar() {
+  comprobar_requisitos || true
+  [ -f "$ROOT/.env" ] || { aviso "Aún no instalado"; return; }
+  echo "== Instancia"
+  estado || true
+  local inst; inst="$(instancia_actual)"
+  docker image inspect "$inst:local" >/dev/null 2>&1 && ok "Imagen $inst:local" || fallo "Falta la imagen $inst:local (bin/pos actualizar)"
+  for f in .env data/control-center/secrets.env; do
+    [ -f "$ROOT/$f" ] && [ "$(stat -c %a "$ROOT/$f")" = 600 ] && ok "$f con permisos 600" || fallo "$f debería tener permisos 600"
+  done
+  df -h "$ROOT" | awk 'NR==2{print "  Disco: "$4" libres de "$2}'
+}
+
+actualizar() {
+  local inst port tz; inst="$(instancia_actual)"; port="$(leer_env "$ROOT/.env" POS_PORT)"; tz="$(leer_env "$ROOT/.env" POS_TZ)"
+  "$ROOT/control-center/deployment/backup.py" >/dev/null 2>&1 && ok "Copia de la base antes de actualizar" || aviso "No pude hacer la copia previa"
+  (cd "$CC/backend" && uv sync --frozen)
+  (cd "$CC/apps/web" && npm ci --no-fund --no-audit && npm run build)
+  docker build -t "$inst:local" --build-arg "TZ=$tz" "$ROOT"
+  render_unidades "$inst" "$port" "$tz" "$UNITS"
+  systemctl --user daemon-reload
+  systemctl --user restart "$inst-cc-hostagent.service" "$inst-cc-backend.service"
+  ok "Actualizado"
+}
+
+desinstalar() {
+  local borrar=0; [ "${1:-}" = "--borrar-datos" ] && borrar=1
+  local inst; inst="$(instancia_actual)"
+  echo "Se pararán y quitarán los servicios de «$inst»$([ $borrar = 1 ] && echo ', sus contenedores y TODOS sus datos (base, vault, archivos)')."
+  read -r -p "Escribe el nombre de la instancia para confirmar: " r
+  [ "$r" = "$inst" ] || muere "No coincide: no se ha hecho nada"
+  for u in "$UNITS/$inst"-*; do [ -e "$u" ] && systemctl --user disable --now "$(basename "$u")" 2>/dev/null || true; done
+  rm -f "$UNITS/$inst"-*
+  systemctl --user daemon-reload
+  docker ps -aq --filter "label=$inst.vc" --filter "label=$inst.session" | xargs -r docker rm -f >/dev/null
+  ok "Servicios quitados"
+  if [ $borrar = 1 ]; then
+    rm -rf "$ROOT/data" "$ROOT/Jarvis-Vault" "$ROOT/archivos" "$ROOT/.env"
+    ok "Datos borrados"
+  else
+    ok "Tus datos siguen en $ROOT (data/, Jarvis-Vault/, archivos/)"
+  fi
+}
+
+case "${1:-}" in
+  instalar) shift; instalar "$@" ;;
+  comprobar|doctor) comprobar ;;
+  actualizar) actualizar ;;
+  desinstalar) shift; desinstalar "$@" ;;
+  estado) estado ;;
+  *) sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac

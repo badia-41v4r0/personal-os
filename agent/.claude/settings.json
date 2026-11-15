@@ -1,0 +1,40 @@
+{
+  "model": "sonnet",
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "allow": [
+      "Read(//vault/**)",
+      "Read(//workspace/**)",
+      "Glob",
+      "Grep",
+      "Edit(//vault/Jarvis/**)",
+      "Bash(python3 /workspace/collectors/archivos.py:*)",
+      "Bash(python3 /workspace/collectors/correo.py:*)",
+      "Bash(python3 /workspace/collectors/gcal.py:*)",
+      "Bash(python3 /workspace/collectors/gym_coach.py:*)",
+      "Bash(python3 /workspace/collectors/gym_stats.py:*)",
+      "Bash(python3 /workspace/collectors/notas.py:*)",
+      "Bash(date:*)",
+      "mcp__plugin_telegram_telegram",
+      "Skill",
+      "Agent",
+      "Task",
+      "Read(//home/node/.claude/channels/telegram/inbox/**)",
+      "Bash(/opt/jarvis/bin/transcribir:*)",
+      "Read(//repos/**)",
+      "Read(//archivos/**)",
+      "Edit(//voz/salida/**)"
+    ],
+    "deny": [
+      "WebFetch",
+      "WebSearch",
+      "Read(//home/node/.claude.json)",
+      "Read(//home/node/.claude/.credentials.json)",
+      "Read(//proc/**)",
+      "Read(//run/jarvis-secrets/**)",
+      "Bash(cat:*)",
+      "Bash(python3 -c:*)"
+    ]
+  },
+  "disableSkillShellExecution": true
+}

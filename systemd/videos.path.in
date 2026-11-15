@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@: vigilar la cola de vídeos (reels, TikTok, Shorts)
+
+[Path]
+PathExistsGlob=@ROOT@/Jarvis-Vault/Jarvis/Videos/cola/*.md
+Unit=@INST@-videos.service
+
+[Install]
+WantedBy=default.target

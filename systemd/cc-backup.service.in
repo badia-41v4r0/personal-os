@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@ panel: copia de seguridad de la base del panel
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+Type=oneshot
+UMask=0077
+EnvironmentFile=-@ROOT@/data/control-center/secrets.env
+ExecStart=@ROOT@/control-center/backend/.venv/bin/python @ROOT@/control-center/deployment/backup.py

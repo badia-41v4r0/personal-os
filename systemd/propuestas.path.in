@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@: vigilar propuestas de skills y agentes
+
+[Path]
+PathExistsGlob=@ROOT@/Jarvis-Vault/Jarvis/Propuestas/*.listo
+Unit=@INST@-propuestas.service
+
+[Install]
+WantedBy=default.target

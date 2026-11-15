@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@: recopiladores (Panel y digest)
+After=network-online.target
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+Type=oneshot
+WorkingDirectory=@ROOT@/collectors
+ExecStart=/usr/bin/python3 build.py

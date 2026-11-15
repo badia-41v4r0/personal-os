@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Dentro del contenedor del programador: ejecuta un encargo con Claude Code en modo no interactivo.
+set -euo pipefail
+: "${CLAUDE_CODE_OAUTH_TOKEN:?falta el token}"
+CFG="$HOME/.claude.json"
+[ -f "$CFG" ] || echo '{}' > "$CFG"
+tmp=$(mktemp); jq '.hasCompletedOnboarding = true | .projects["/repo"].hasTrustDialogAccepted = true' "$CFG" > "$tmp" && cat "$tmp" > "$CFG"
+# Sin red propia: todo sale por el proxy de salida (bin/programador.sh)
+node /opt/programador/puente.js &
+export HTTPS_PROXY=http://127.0.0.1:3128 HTTP_PROXY=http://127.0.0.1:3128 NO_PROXY=localhost,127.0.0.1
+export npm_config_proxy=$HTTPS_PROXY npm_config_https_proxy=$HTTPS_PROXY
+cd /repo
+extra=""
+if [ "${SUBAGENTES:-false}" = "true" ]; then
+  extra=$'\n\n## Proyecto grande\nEs un proyecto grande. Empieza **planificando** (TodoWrite). Si el encargo tiene partes independientes, lanza **subagentes** en paralelo (herramienta Agent) con instrucciones concretas y revisa e integra su trabajo antes de commitear.'
+fi
+claude -p "$(cat /salida/encargo.md)" \
+  --model "${MODELO:-sonnet}" \
+  --permission-mode dontAsk \
+  --add-dir /salida \
+  --append-system-prompt "$(cat /opt/programador/instrucciones.md)${extra}" \
+  > /salida/registro.txt 2>&1 || echo "claude terminó con error $?" >> /salida/registro.txt
+# Lo que quede sin commitear se commitea aquí: el host nunca ejecuta git dentro de esta copia.
+if [ -n "$(git status --porcelain)" ]; then
+  git add -A && git commit -qm "WIP Jarvis: cambios sin commitear del encargo ${ENCARGO:-}" || true
+fi
+[ -f /salida/resumen.md ] || { echo "(El programador no dejó resumen. Últimas líneas del registro:)"; tail -20 /salida/registro.txt; } > /salida/resumen.md

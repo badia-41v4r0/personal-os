@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@: renovar el permiso de Google si caduca pronto (abre el navegador)
+After=graphical-session.target
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+Type=oneshot
+ExecStart=@ROOT@/bin/renovar-google.sh
+TimeoutStartSec=13h

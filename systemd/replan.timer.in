@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@: recalcular el plan de estudio los domingos a las 21:00
+
+[Timer]
+OnCalendar=Sun *-*-* 21:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

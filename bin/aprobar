@@ -1,0 +1,274 @@
+#!/usr/bin/env python3
+"""Propuestas de skills y subagentes de Jarvis: validar, revisar e instalar desde el host.
+
+Jarvis escribe borradores en Jarvis-Vault/Jarvis/Propuestas/<nombre>/ (SKILL.md o AGENTE.md) y crea
+Propuestas/<nombre>.listo al terminar. Jarvis no puede instalarlos: agent/.claude está en solo lectura para él.
+
+  bin/aprobar                    lista las propuestas pendientes
+  bin/aprobar <nombre>           enseña la propuesta, la valida y pide confirmación para instalarla
+  bin/aprobar --rechazar <nombre> [motivo]
+  bin/aprobar --revisar          (lo lanza jarvis-propuestas.path) valida las nuevas y avisa por Telegram
+  bin/aprobar --json             (Control Center) pendientes con validación, contenido y huella, en JSON
+  bin/aprobar --si <nombre> --hash <huella>
+                                 (Control Center) instala sin preguntar solo si la copia fija tiene la huella que
+                                 el usuario vio en el panel; si el borrador cambió entretanto, no instala nada
+
+Se rechaza todo lo que dé permisos o ejecute comandos: hooks, allowed-tools, permissionMode,
+mcpServers, inyección de shell (!`cmd`), archivos que no sean .md y agentes sin lista de herramientas.
+"""
+import datetime
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parent.parent
+PROP = ROOT / "Jarvis-Vault/Jarvis/Propuestas"
+ARCHIVO = PROP / "_archivo"
+SKILLS = ROOT / "agent/.claude/skills"
+AGENTS = ROOT / "agent/.claude/agents"
+
+NOMBRE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+MODELOS = {"sonnet", "opus", "inherit"}
+CLAVES_SKILL = {"name", "description", "when_to_use", "argument-hint", "arguments",
+                "disable-model-invocation", "user-invocable", "disallowed-tools", "model", "effort",
+                "context", "agent", "background", "paths", "metadata"}
+CLAVES_AGENTE = {"name", "description", "tools", "disallowedTools", "model", "maxTurns", "skills",
+                 "effort", "color", "background"}
+HERRAMIENTAS_AGENTE = {"Read", "Grep", "Glob", "Edit", "Write", "Bash", "Skill"}
+SHELL = re.compile(r"!`|^\s*(```|~~~)!", re.M)
+MAX_ARCHIVOS, MAX_BYTES = 10, 50_000
+
+
+def avisar(texto):
+    subprocess.run([ROOT / "bin/telegram-send.sh", texto], check=False)
+
+
+def frontmatter(texto):
+    if not texto.startswith("---\n"):
+        raise ValueError("falta el frontmatter (--- en la primera línea)")
+    fin = texto.find("\n---", 4)
+    if fin < 0:
+        raise ValueError("el frontmatter no se cierra con ---")
+    datos = yaml.safe_load(texto[4:fin]) or {}
+    if not isinstance(datos, dict):
+        raise ValueError("el frontmatter no es un mapa YAML")
+    return datos
+
+
+def lista(valor):
+    if valor is None:
+        return []
+    if isinstance(valor, str):
+        return [t for t in re.split(r"[,\s]+", valor) if t]
+    return [str(t) for t in valor]
+
+
+def validar(carpeta):
+    """Devuelve (tipo, frontmatter, archivos) o lanza ValueError con los motivos."""
+    nombre = carpeta.name
+    errores = []
+    if not NOMBRE.fullmatch(nombre) or len(nombre) > 40:
+        errores.append("nombre de carpeta inválido (minúsculas, números y guiones, máx. 40)")
+    archivos = sorted(p for p in carpeta.rglob("*") if p.name != "RECHAZO.md")
+    for p in archivos:
+        if p.is_symlink() or (p.is_file() and p.suffix != ".md") or (p.is_dir() and p.parent != carpeta):
+            errores.append(f"archivo no permitido: {p.relative_to(carpeta)} (solo .md, sin enlaces)")
+        elif p.is_file() and p.stat().st_size > MAX_BYTES:
+            errores.append(f"{p.name} pasa de {MAX_BYTES // 1000} KB")
+    archivos = [p for p in archivos if p.is_file()]
+    if len(archivos) > MAX_ARCHIVOS:
+        errores.append(f"más de {MAX_ARCHIVOS} archivos")
+    nombres = {p.name for p in archivos}
+    if ("SKILL.md" in nombres) == ("AGENTE.md" in nombres):
+        raise ValueError("\n".join(errores + ["debe haber SKILL.md o AGENTE.md (uno de los dos)"]))
+    tipo = "skill" if "SKILL.md" in nombres else "agente"
+    if tipo == "agente" and len(archivos) > 1:
+        errores.append("un agente es solo AGENTE.md")
+
+    for p in archivos:
+        if SHELL.search(p.read_text(encoding="utf-8", errors="replace")):
+            errores.append(f"{p.name}: contiene inyección de shell (!`...` o ```!)")
+
+    principal = carpeta / ("SKILL.md" if tipo == "skill" else "AGENTE.md")
+    try:
+        fm = frontmatter(principal.read_text(encoding="utf-8"))
+    except (ValueError, yaml.YAMLError) as e:
+        raise ValueError("\n".join(errores + [f"{principal.name}: {e}"]))
+    permitidas = CLAVES_SKILL if tipo == "skill" else CLAVES_AGENTE
+    for clave in sorted(set(fm) - permitidas):
+        errores.append(f"campo no permitido: {clave}")
+    if fm.get("name") != nombre:
+        errores.append(f"name debe ser «{nombre}» (igual que la carpeta)")
+    if not str(fm.get("description") or "").strip():
+        errores.append("falta description")
+    if "model" in fm and fm["model"] not in MODELOS:
+        errores.append(f"model debe ser uno de {sorted(MODELOS)}")
+    if tipo == "skill" and fm.get("context") not in (None, "fork"):
+        errores.append("context solo puede ser fork")
+    if tipo == "agente":
+        tools = lista(fm.get("tools"))
+        if not tools:
+            errores.append("el agente necesita tools explícitas (p. ej. Read, Grep, Glob)")
+        for t in tools:
+            if t not in HERRAMIENTAS_AGENTE:
+                errores.append(f"herramienta no permitida para un agente: {t}")
+    if errores:
+        raise ValueError("\n".join(errores))
+    return tipo, fm, archivos
+
+
+def pendientes():
+    if not PROP.is_dir():
+        return []
+    return sorted(p for p in PROP.iterdir() if p.is_dir() and not p.name.startswith("_"))
+
+
+def archivar(carpeta, sufijo):
+    ARCHIVO.mkdir(parents=True, exist_ok=True)
+    destino = ARCHIVO / f"{carpeta.name}-{datetime.datetime.now():%Y%m%d-%H%M%S}-{sufijo}"
+    shutil.move(str(carpeta), destino)
+    return destino
+
+
+def revisar():
+    for listo in sorted(PROP.glob("*.listo")):
+        listo.unlink()
+        carpeta = PROP / listo.stem
+        if not carpeta.is_dir() or carpeta.name.startswith("_"):
+            avisar(f"⚠️ Jarvis marcó como lista la propuesta «{listo.stem}», pero no existe su carpeta.")
+            continue
+        try:
+            tipo, fm, _ = validar(carpeta)
+        except ValueError as e:
+            (carpeta / "RECHAZO.md").write_text(f"# No pasa la validación\n\n{e}\n", encoding="utf-8")
+            avisar(f"⚠️ La propuesta «{carpeta.name}» de Jarvis no pasa la validación:\n{e}\n\n"
+                   "Los motivos están en su RECHAZO.md; Jarvis puede corregirla.")
+            continue
+        (carpeta / "RECHAZO.md").unlink(missing_ok=True)
+        avisar(f"🧩 Jarvis propone {'una skill' if tipo == 'skill' else 'un agente'}: «{carpeta.name}»\n"
+               f"{str(fm['description']).strip()[:400]}\n\n"
+               f"Para revisarla e instalarla, en el PC:\nbin/aprobar {carpeta.name}")
+
+
+def mostrar(carpeta, archivos):
+    for p in archivos:
+        print(f"\n\033[1m══ {p.relative_to(carpeta)} ══\033[0m")
+        print(p.read_text(encoding="utf-8"))
+
+
+def huella(carpeta):
+    """SHA-256 del contenido (rutas relativas + bytes), para aprobar exactamente lo que se ha visto."""
+    import hashlib
+    h = hashlib.sha256()
+    for p in sorted(x for x in carpeta.rglob("*") if x.is_file()):
+        h.update(str(p.relative_to(carpeta)).encode() + b"\0" + p.read_bytes() + b"\0")
+    return h.hexdigest()
+
+
+def listar_json():
+    import json
+    out = []
+    for c in pendientes():
+        item = {"nombre": c.name, "huella": huella(c), "archivos": {}}
+        for p in sorted(x for x in c.rglob("*") if x.is_file())[:MAX_ARCHIVOS + 2]:
+            item["archivos"][str(p.relative_to(c))] = p.read_text(encoding="utf-8", errors="replace")[:MAX_BYTES]
+        try:
+            tipo, fm, _ = validar(c)
+            destino = SKILLS / c.name if tipo == "skill" else AGENTS / f"{c.name}.md"
+            item.update(valida=True, tipo=tipo, descripcion=str(fm.get("description", "")).strip(),
+                        modelo=fm.get("model"), herramientas=lista(fm.get("tools")) if tipo == "agente" else None,
+                        sustituye=destino.exists(), destino=str(destino.relative_to(ROOT)))
+        except ValueError as e:
+            item.update(valida=False, error=str(e))
+        out.append(item)
+    print(json.dumps(out, ensure_ascii=False))
+
+
+def aprobar(nombre, huella_esperada=None):
+    carpeta = PROP / nombre
+    if not carpeta.is_dir() or nombre.startswith("_"):
+        sys.exit(f"No existe la propuesta «{nombre}». Usa bin/aprobar para ver la lista.")
+    # Copia fija: se valida, se enseña y se instala exactamente lo mismo, aunque el borrador cambie.
+    with tempfile.TemporaryDirectory() as tmp:
+        copia = Path(tmp) / nombre
+        shutil.copytree(carpeta, copia, symlinks=True)
+        try:
+            tipo, fm, archivos = validar(copia)
+        except ValueError as e:
+            sys.exit(f"❌ No pasa la validación:\n{e}")
+        mostrar(copia, archivos)
+        destino = SKILLS / nombre if tipo == "skill" else AGENTS / f"{nombre}.md"
+        print(f"\nTipo: {tipo} · modelo: {fm.get('model', 'el de la sesión')}"
+              + (f" · herramientas: {', '.join(lista(fm.get('tools')))}" if tipo == "agente" else ""))
+        if destino.exists():
+            print(f"⚠️ Ya existe {destino.relative_to(ROOT)}: se sustituirá.")
+        if huella_esperada is not None:
+            if huella(copia) != huella_esperada:
+                sys.exit("❌ La propuesta ha cambiado desde que la revisaste: no se ha instalado nada.")
+        elif input("\n¿Instalar? [s/N] ").strip().lower() not in ("s", "si", "sí"):
+            print("No se ha instalado nada.")
+            return
+        if tipo == "skill":
+            SKILLS.mkdir(parents=True, exist_ok=True)
+            nuevo = SKILLS / f".{nombre}.nuevo"
+            shutil.rmtree(nuevo, ignore_errors=True)
+            shutil.copytree(copia, nuevo, ignore=shutil.ignore_patterns("RECHAZO.md"))
+            if destino.exists():
+                shutil.rmtree(destino)
+            nuevo.rename(destino)
+        else:
+            shutil.copyfile(copia / "AGENTE.md", destino)
+    rel = destino.relative_to(ROOT)
+    subprocess.run(["git", "-C", ROOT, "add", "-A", rel], check=True)
+    subprocess.run(["git", "-C", ROOT, "commit", "-qm",
+                    f"Jarvis: {'skill «%s» aprobada' % nombre if tipo == 'skill' else 'agente «%s» aprobado' % nombre} por el usuario\n\n{str(fm['description']).strip()}",
+                    "--", rel], check=False)
+    archivar(carpeta, "instalada")
+    print(f"✅ Instalado en {rel} (commit hecho). Jarvis la ve sin reiniciar.")
+    avisar(f"✅ {'Skill «%s» instalada' % nombre if tipo == 'skill' else 'Agente «%s» instalado' % nombre}.")
+
+
+def rechazar(nombre, motivo):
+    carpeta = PROP / nombre
+    if not carpeta.is_dir() or nombre.startswith("_"):
+        sys.exit(f"No existe la propuesta «{nombre}».")
+    (carpeta / "RECHAZO.md").write_text(f"# Rechazada por el usuario\n\n{motivo or 'Sin motivo.'}\n", encoding="utf-8")
+    archivar(carpeta, "rechazada")
+    print(f"Rechazada y archivada en Propuestas/_archivo/.")
+
+
+def listar():
+    lst = pendientes()
+    if not lst:
+        print("No hay propuestas pendientes.")
+        return
+    for c in lst:
+        try:
+            tipo, fm, _ = validar(c)
+            print(f"  {c.name:30} {tipo:7} {str(fm['description']).strip()[:70]}")
+        except ValueError as e:
+            print(f"  {c.name:30} ❌ no válida: {str(e).splitlines()[0]}")
+    print("\nbin/aprobar <nombre> para revisar e instalar · bin/aprobar --rechazar <nombre> [motivo]")
+
+
+if __name__ == "__main__":
+    args = sys.argv[1:]
+    if not args:
+        listar()
+    elif args[0] == "--revisar":
+        revisar()
+    elif args[0] == "--json":
+        listar_json()
+    elif args[0] == "--si" and len(args) == 4 and args[2] == "--hash":
+        aprobar(args[1], huella_esperada=args[3])
+    elif args[0] == "--rechazar" and len(args) >= 2:
+        rechazar(args[1], " ".join(args[2:]))
+    elif not args[0].startswith("-"):
+        aprobar(args[0])
+    else:
+        sys.exit(__doc__)

@@ -1,0 +1,37 @@
+{
+  "_criterio": "Cada serie efectiva (no calentamiento) cuenta 1 serie para cada músculo principal y 0,5 para cada secundario. Las reglas se aplican en orden sobre el nombre normalizado (minúsculas, sin acentos); gana la primera que contiene el texto. 'alias' une nombres distintos del mismo ejercicio (clave y valor normalizados).",
+  "grupos": ["pecho", "espalda", "hombros", "biceps", "triceps", "cuadriceps", "isquiotibiales", "gluteos", "aductores", "gemelos", "abdomen", "lumbar"],
+  "alias": {
+    "curl predicador (maquina)": "curl predicador (maquina)",
+    "jalon al pecho (cable)": "jalon al pecho (cable)"
+  },
+  "reglas": [
+    {"contiene": "cinta", "tipo": "cardio", "principales": [], "secundarios": []},
+    {"contiene": "press de banca inclinado", "principales": ["pecho"], "secundarios": ["hombros", "triceps"]},
+    {"contiene": "press de banca", "principales": ["pecho"], "secundarios": ["triceps", "hombros"]},
+    {"contiene": "press de pecho", "principales": ["pecho"], "secundarios": ["triceps", "hombros"]},
+    {"contiene": "aperturas", "principales": ["pecho"], "secundarios": []},
+    {"contiene": "cables cruzados", "principales": ["pecho"], "secundarios": []},
+    {"contiene": "pullover", "principales": ["espalda"], "secundarios": ["pecho"]},
+    {"contiene": "jalon de triceps", "principales": ["triceps"], "secundarios": []},
+    {"contiene": "extension de triceps", "principales": ["triceps"], "secundarios": []},
+    {"contiene": "jalon al pecho", "principales": ["espalda"], "secundarios": ["biceps"]},
+    {"contiene": "dominada", "principales": ["espalda"], "secundarios": ["biceps"]},
+    {"contiene": "remo", "principales": ["espalda"], "secundarios": ["biceps", "hombros"]},
+    {"contiene": "vuelos posteriores", "principales": ["hombros"], "secundarios": ["espalda"]},
+    {"contiene": "elevacion lateral", "principales": ["hombros"], "secundarios": []},
+    {"contiene": "press de hombros", "principales": ["hombros"], "secundarios": ["triceps"]},
+    {"contiene": "curl predicador", "principales": ["biceps"], "secundarios": []},
+    {"contiene": "curl de biceps", "principales": ["biceps"], "secundarios": []},
+    {"contiene": "curl de pierna", "principales": ["isquiotibiales"], "secundarios": []},
+    {"contiene": "curls de piernas", "principales": ["isquiotibiales"], "secundarios": []},
+    {"contiene": "extension de pierna", "principales": ["cuadriceps"], "secundarios": []},
+    {"contiene": "sentadilla", "principales": ["cuadriceps"], "secundarios": ["gluteos", "aductores"]},
+    {"contiene": "press de piernas", "principales": ["cuadriceps"], "secundarios": ["gluteos"]},
+    {"contiene": "abduccion de cadera", "principales": ["gluteos"], "secundarios": []},
+    {"contiene": "aduccion de cadera", "principales": ["aductores"], "secundarios": []},
+    {"contiene": "pantorrilla", "principales": ["gemelos"], "secundarios": []},
+    {"contiene": "rotacion de torso", "principales": ["abdomen"], "secundarios": []},
+    {"contiene": "extension de espalda", "principales": ["lumbar"], "secundarios": ["gluteos", "isquiotibiales"]}
+  ]
+}

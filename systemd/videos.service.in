@@ -1,0 +1,8 @@
+[Unit]
+Description=@INST@: descargar y preparar vídeos para analizar
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+Type=oneshot
+ExecStart=@ROOT@/bin/video.sh
+TimeoutStartSec=1h

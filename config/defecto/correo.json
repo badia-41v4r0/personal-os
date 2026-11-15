@@ -1,0 +1,7 @@
+{
+  "cuentas": {
+    "gmail": {"etiqueta": "Gmail", "email": ""},
+    "secundaria": {"etiqueta": "Segunda cuenta de Google", "email": ""},
+    "zoho": {"etiqueta": "Zoho Mail", "email": ""}
+  }
+}

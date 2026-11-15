@@ -1,0 +1,8 @@
+[Unit]
+Description=@INST@: validar propuestas nuevas y avisar por Telegram
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+Type=oneshot
+ExecStartPre=/bin/sleep 2
+ExecStart=@ROOT@/bin/aprobar --revisar

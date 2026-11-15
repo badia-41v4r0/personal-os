@@ -1,0 +1,10 @@
+#!/opt/whisper/bin/python
+"""Transcribe una nota de voz en local con Whisper. Uso: transcribir <archivo de audio>"""
+import sys
+from faster_whisper import WhisperModel
+
+if len(sys.argv) != 2:
+    sys.exit("Uso: transcribir <archivo de audio>")
+modelo = WhisperModel("small", device="cpu", compute_type="int8", cpu_threads=2)
+segmentos, info = modelo.transcribe(sys.argv[1], language="es", vad_filter=True, beam_size=5)
+print(" ".join(s.text.strip() for s in segmentos).strip() or "(audio sin voz reconocible)")

@@ -1,0 +1,22 @@
+# Instalado en ~/.config/systemd/user/ (bin del Control Center: control-center/deployment/instalar.sh)
+[Unit]
+Description=@INST@ panel: backend y web (127.0.0.1:@PORT@)
+Requires=@INST@-cc-hostagent.service
+After=@INST@-cc-hostagent.service
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+EnvironmentFile=@ROOT@/data/control-center/secrets.env
+WorkingDirectory=@ROOT@/control-center/backend
+ExecStartPre=@ROOT@/control-center/backend/.venv/bin/alembic upgrade head
+ExecStart=@ROOT@/control-center/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port @PORT@ --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+UMask=0077
+PrivateTmp=yes
+MemoryMax=512M
+CPUQuota=50%
+
+[Install]
+WantedBy=default.target

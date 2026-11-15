@@ -1,0 +1,9 @@
+[Unit]
+Description=@INST@: vigilar la cola de encargos de código
+
+[Path]
+PathExistsGlob=@ROOT@/Jarvis-Vault/Jarvis/Encargos/cola/*.md
+Unit=@INST@-programador.service
+
+[Install]
+WantedBy=default.target

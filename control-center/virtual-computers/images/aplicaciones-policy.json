@@ -1,0 +1,20 @@
+{
+  "ProxySettings": {
+    "ProxyMode": "fixed_servers",
+    "ProxyServer": "http://127.0.0.1:3128"
+  },
+  "PasswordManagerEnabled": false,
+  "RestoreOnStartup": 1,
+  "PromptForDownloadLocation": false,
+  "DownloadDirectory": "/home/vc/descargas",
+  "BrowserSignin": 0,
+  "SyncDisabled": true,
+  "DefaultNotificationsSetting": 2,
+  "URLBlocklist": [
+    "file://*"
+  ],
+  "AutofillCreditCardEnabled": false,
+  "AutofillAddressEnabled": false,
+  "PaymentMethodQueryEnabled": false,
+  "DownloadRestrictions": 3
+}

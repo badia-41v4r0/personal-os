@@ -1,0 +1,8 @@
+[Unit]
+Description=@INST@: procesar tareas del ayudante
+
+[Service]
+Environment=POS_INSTANCE=@INST@ POS_TZ=@TZ@
+Type=oneshot
+ExecStart=@ROOT@/bin/ayudante.sh
+TimeoutStartSec=4h

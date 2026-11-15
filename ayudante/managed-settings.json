@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "allow": [
+      "Read(//trabajo/**)", "Edit(//trabajo/**)", "Write(//trabajo/**)",
+      "Read(//vault/**)",
+      "Glob", "Grep", "TodoWrite", "Agent", "Task",
+      "WebSearch", "WebFetch",
+      "Bash(ls:*)", "Bash(mkdir:*)", "Bash(wc:*)"
+    ],
+    "deny": [
+      "Bash(python3:*)", "Bash(python:*)", "Bash(node:*)", "Bash(bun:*)", "Bash(npx:*)", "Bash(npm:*)",
+      "Bash(curl:*)", "Bash(wget:*)", "Bash(env:*)", "Bash(printenv:*)", "Bash(cat:*)", "Bash(ssh:*)", "Bash(git:*)",
+      "Read(//home/node/**)", "Read(//proc/**)", "Read(//etc/**)", "Read(//run/**)",
+      "Edit(//vault/**)", "Write(//vault/**)"
+    ]
+  }
+}

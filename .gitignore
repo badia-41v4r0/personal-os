@@ -1,0 +1,17 @@
+.env
+data/
+Jarvis-Vault/
+secrets/
+repos/
+archivos/
+__pycache__/
+voz/.venv/
+voz/modelos/
+voz/estado/
+.venv/
+node_modules/
+.next/
+control-center/apps/web/out/
+control-center/apps/web/test-results/
+control-center/apps/web/playwright-report/
+.claude/worktrees/

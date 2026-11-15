@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Jarvis por voz en el PC.
+#   bin/voz pausa     pausa o reanuda la escucha (libera el micro)
+#   bin/voz hablar    empieza a escuchar una orden ya, sin decir «oye Jarvis»
+#   bin/voz ventana   abre la ventana de la conversación
+#   bin/voz estado    muestra la fase actual y las últimas líneas del servicio
+set -euo pipefail
+cd "$(dirname "$0")/.."
+ESTADO=voz/estado
+mkdir -p "$ESTADO"
+case "${1:-}" in
+  pausa)
+    if [ -e "$ESTADO/pausa" ]; then
+      rm "$ESTADO/pausa"; notify-send -t 2000 "Jarvis" "🎙️ Te escucho de nuevo" || true
+    else
+      touch "$ESTADO/pausa"; notify-send -t 2000 "Jarvis" "⏸ Escucha en pausa" || true
+    fi ;;
+  hablar)
+    if [ -e "$ESTADO/pausa" ]; then notify-send -t 2000 "Jarvis" "⏸ La escucha está en pausa" || true
+    else touch "$ESTADO/activar"; fi ;;
+  ventana)
+    exec setsid -f alacritty --class jarvis-voz --title "Jarvis · voz" \
+      -o 'window.dimensions.columns=72' -o 'window.dimensions.lines=26' \
+      -e "$PWD/voz/.venv/bin/python" "$PWD/voz/ventana.py" ;;
+  estado)
+    cat "$ESTADO/fase" 2>/dev/null || echo "sin estado"; echo
+    journalctl --user -u jarvis-voz -n 15 --no-pager ;;
+  *) echo "Uso: bin/voz pausa|hablar|ventana|estado"; exit 1 ;;
+esac
