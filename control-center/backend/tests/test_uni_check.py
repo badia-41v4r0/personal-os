@@ -17,7 +17,8 @@ def fmt(d: date) -> str:
 def v(tmp_path, monkeypatch, settings):
     sem = tmp_path / "Semanas"
     sem.mkdir()
-    ini, fin = HOY - timedelta(days=HOY.weekday()), HOY - timedelta(days=HOY.weekday()) + timedelta(days=6)
+    # la "semana" empieza ayer: así la entrega atrasada de ayer cae dentro también los lunes
+    ini, fin = HOY - timedelta(days=1), HOY + timedelta(days=5)
     fila = f"| Día {HOY:%d/%m} | [[Uni/A\\|SC]] · Bloque uno (1/2) | — | — |"
     nota = sem / "Semana.md"
     nota.write_text(f"""---
