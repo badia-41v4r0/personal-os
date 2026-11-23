@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Bell, LogOut, Menu, PanelRightClose, PanelRightOpen, Search, X } from "lucide-react";
+import { Bell, LogOut, Menu, PanelRightClose, PanelRightOpen, Search } from "lucide-react";
 import { cn } from "cn";
 import { api, post, setCsrf } from "@/lib/api";
 import { useApi, useEvents, type BusEvent } from "@/lib/hooks";
@@ -12,7 +12,7 @@ import { visible, moduloDe, type Instancia } from "@/lib/instancia";
 import { OnboardingBanner } from "./onboarding-banner";
 import { CuentaForm } from "./cuenta-form";
 import { Button } from "@/components/ui/button";
-import { AGENTS_TABS, NAV, NAV_MOBILE, NAV_SYSTEM, isActive, type NavItem } from "./nav";
+import { NAV_AJUSTES, NAV_GROUPS, NAV_MOBILE, enSeccion, isActive, tituloDe, type NavItem } from "./nav";
 import { CommandPalette } from "./command-palette";
 import { assistantFor } from "./assistants";
 import { JarvisDock } from "./jarvis-dock";
@@ -33,9 +33,9 @@ function NavList({ items, onNavigate, path, label }: { items: NavItem[]; onNavig
   const { inst } = usePanel();
   items = items.filter((i) => visible(inst, i.href));
   return (
-    <nav className="flex flex-col gap-0.5" aria-label={label}>
+    <div className="flex flex-col gap-0.5" role="group" aria-label={label}>
       {items.map(({ href, label: text, icon: Icon }) => {
-        const active = isActive(href, path) || (href === "/agents/" && AGENTS_TABS.some((t) => isActive(t.href, path)));
+        const active = enSeccion(href, path);
         return (
           <Link
             key={href}
@@ -52,31 +52,19 @@ function NavList({ items, onNavigate, path, label }: { items: NavItem[]; onNavig
           </Link>
         );
       })}
-    </nav>
+    </div>
   );
 }
 
-function AgentTabs({ path }: { path: string }) {
-  const { inst } = usePanel();
-  if (!AGENTS_TABS.some((t) => isActive(t.href, path))) return null;
-  const tabs = AGENTS_TABS.filter((t) => visible(inst, t.href));
+/** Campana: lleva a la Bandeja. El número es lo que espera tu decisión; el punto, avisos sin leer. */
+function Bell_({ unread, decidir }: { unread: number; decidir: number }) {
+  const partes = [decidir && `${decidir} por decidir`, unread && `${unread} sin leer`].filter(Boolean).join(", ");
   return (
-    <nav aria-label="Secciones de Agentes" className="mb-5 flex gap-1 overflow-x-auto border-b border-border">
-      {tabs.map(({ href, label }) => (
-        <Link key={href} href={href} aria-current={isActive(href, path) ? "page" : undefined}
-          className={cn("shrink-0 border-b-2 border-transparent px-3 py-2 text-sm text-muted-foreground hover:text-foreground", isActive(href, path) && "border-primary font-medium text-foreground")}>
-          {label}
-        </Link>
-      ))}
-    </nav>
-  );
-}
-
-function Bell_({ unread }: { unread: number }) {
-  return (
-    <Link href="/avisos/" aria-label={`Avisos${unread ? `, ${unread} sin leer` : ""}`} className="relative grid size-9 place-items-center rounded-lg hover:bg-muted">
+    <Link href="/bandeja/" aria-label={`Bandeja${partes ? `: ${partes}` : ""}`} className="relative grid size-9 place-items-center rounded-lg hover:bg-muted">
       <Bell className="size-4" />
-      {unread > 0 && <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary" />}
+      {decidir > 0
+        ? <span className="absolute top-0.5 right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">{decidir > 9 ? "9+" : decidir}</span>
+        : unread > 0 && <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary" />}
     </Link>
   );
 }
@@ -105,7 +93,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   const [me, setMe] = useState<Me | null>(null);
-  const [open, setOpen] = useState(false);
   const [lastEvent, setLastEvent] = useState<BusEvent | null>(null);
   // Suscriptores directos: el streaming no puede pasar por el estado de React (agruparía los trozos)
   const listeners = useRef(new Set<(e: BusEvent) => void>());
@@ -138,11 +125,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isChat = path.startsWith("/chat");
-  const unread = useApi<{ unread: number }>(me ? "/notifications/count" : null, 60000);
+  const isChat = path.startsWith("/conversaciones");
+  const unread = useApi<{ unread: number; por_decidir: number }>(me ? "/notifications/count" : null, 60000);
   const { reload: reloadUnread } = unread;
   useEffect(() => {
-    if (lastEvent?.type === "notification.created") {
+    if (lastEvent?.type === "notification.created" || lastEvent?.type === "action.changed" || lastEvent?.type === "approval.decided") {
       reloadUnread();
     }
   }, [lastEvent, reloadUnread]);
@@ -195,10 +182,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <div className="text-[11px] text-muted-foreground">Personal OS</div>
         </div>
       </div>
+      <nav aria-label="Principal" className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
-        <NavList items={NAV} path={path} label="Principal" onNavigate={() => setOpen(false)} />
-        <div className="border-t border-sidebar-border pt-3"><NavList items={NAV_SYSTEM} path={path} label="Sistema" onNavigate={() => setOpen(false)} /></div>
+        {NAV_GROUPS.map((g) => g.items.some((i) => visible(inst, i.href)) && (
+          <div key={g.label}>
+            {g.label !== "Conocimiento" && <div className="mb-1 px-3 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{g.label}</div>}
+            <NavList items={g.items} path={path} label={g.label} />
+          </div>
+        ))}
       </div>
+      <NavList items={[NAV_AJUSTES]} path={path} label="Ajustes" />
+      </nav>
       <div className="space-y-2 border-t border-sidebar-border px-3 pt-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
           <StatusDot level={live === "ws" ? "ok" : live === "poll" ? "warn" : "unknown"} pulse />
@@ -219,28 +213,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <CommandPalette open={search} onClose={() => setSearch(false)} />
       <div className="flex min-h-dvh">
         <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">{sidebar}</aside>
-        {open && (
-          <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
-            <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
-            <aside className="absolute inset-y-0 left-0 w-64 border-r border-sidebar-border bg-sidebar">
-              <Button variant="ghost" size="icon-sm" className="absolute top-3 right-3" onClick={() => setOpen(false)} aria-label="Cerrar menú">
-                <X />
-              </Button>
-              {sidebar}
-            </aside>
-          </div>
-        )}
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-background/85 px-4 backdrop-blur lg:h-14 lg:px-6">
-            <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => setOpen(true)} aria-label="Abrir menú">
-              <Menu />
-            </Button>
-            <span className="text-sm font-medium first-letter:uppercase">{new Intl.DateTimeFormat("es-ES", { weekday: "short", day: "numeric", month: "long" }).format(new Date())}</span>
+            <span className="min-w-0 truncate text-base font-semibold tracking-tight lg:hidden">{tituloDe(path) ?? new Intl.DateTimeFormat("es-ES", { weekday: "short", day: "numeric", month: "long" }).format(new Date())}</span>
+            <span className="hidden text-sm font-medium first-letter:uppercase lg:inline">{new Intl.DateTimeFormat("es-ES", { weekday: "short", day: "numeric", month: "long" }).format(new Date())}</span>
             <span className="flex-1" />
             <button type="button" onClick={() => setSearch(true)} aria-label="Buscar" className="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-muted-foreground hover:bg-muted lg:w-64 lg:border lg:border-border">
               <Search className="size-4" /><span className="hidden flex-1 text-left lg:block">Buscar…</span><kbd className="hidden font-mono text-[10px] lg:block">⌘K</kbd>
             </button>
-            <Bell_ unread={unread.data?.unread ?? 0} />
+            <Bell_ unread={unread.data?.unread ?? 0} decidir={unread.data?.por_decidir ?? 0} />
             {!isChat && (
               <Button variant="ghost" size="icon-sm" className="hidden xl:inline-flex" onClick={() => setDock((d) => !d)} aria-label={dock ? `Ocultar ${assistant.name}` : `Mostrar ${assistant.name}`} aria-pressed={dock}>
                 {dock ? <PanelRightClose /> : <PanelRightOpen />}
@@ -249,21 +230,21 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </header>
           <div className="flex min-h-0 flex-1">
             <main className="mx-auto w-full min-w-0 max-w-[1400px] flex-1 p-4 pb-24 md:p-6 lg:pb-6">
-              <AgentTabs path={path} />
               {visible(inst, path) ? <>{(() => { const m = moduloDe(inst, path); return m && !path.startsWith("/bienvenida") ? <OnboardingBanner key={m.id} modulo={m} /> : null; })()}{children}</> : <ModuloApagado nombre={moduloDe(inst, path)?.nombre ?? ""} />}
             </main>
             {dock && !isChat && <aside aria-label={assistant.name} className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-80 shrink-0 border-l border-border bg-card xl:block"><JarvisDock key={assistant.base} assistant={assistant} /></aside>}
           </div>
           {sheet && <div role="dialog" aria-modal="true" aria-label={assistant.name} className="fixed inset-0 z-50 bg-card pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] xl:hidden"><JarvisDock key={assistant.base} assistant={assistant} onClose={() => setSheet(false)} /></div>}
           <nav aria-label="Accesos rápidos" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-            {NAV_MOBILE.filter((i) => visible(inst, i.href)).map(({ href, label, icon: Icon }) => href === "/chat/" ? (
-              <button key={href} type="button" onClick={() => setSheet(true)} className="flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground"><Icon className="size-5" />{assistant.key ? assistant.name.split(" ")[0] : asistente()}</button>
+            {NAV_MOBILE.filter((i) => visible(inst, i.href)).map(({ href, label, icon: Icon }) => href === "/conversaciones/" ? (
+              <button key={href} type="button" onClick={() => setSheet(true)} className="relative flex min-h-14 flex-col items-center justify-end pb-2.5 text-[11px] text-muted-foreground"><span className="absolute -top-3 grid size-11 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-md"><Icon className="size-5" /></span>{assistant.key ? assistant.name.split(" ")[0] : asistente()}</button>
             ) : (
-              <Link key={href} href={href} aria-current={isActive(href, path) ? "page" : undefined} className={cn("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground", isActive(href, path) && "text-primary")}>
+              <Link key={href} href={href} aria-current={isActive(href, path) ? "page" : undefined} className={cn("relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground", isActive(href, path) && "text-primary")}>
                 <Icon className="size-5" />{label}
+                {href === "/bandeja/" && (unread.data?.por_decidir ?? 0) > 0 && <span className="absolute top-2 left-1/2 ml-2 size-2 rounded-full bg-primary" aria-label="Hay cosas por decidir" />}
               </Link>
             ))}
-            <button type="button" onClick={() => setOpen(true)} className="flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground"><Menu className="size-5" />Más</button>
+            <Link href="/mas/" aria-current={path.startsWith("/mas") ? "page" : undefined} className={cn("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground", (path.startsWith("/mas") || !NAV_MOBILE.some((i) => isActive(i.href, path))) && "text-primary")}><Menu className="size-5" />Más</Link>
           </nav>
         </div>
       </div>
@@ -275,16 +256,19 @@ function ModuloApagado({ nombre }: { nombre: string }) {
   return (
     <div className="mx-auto max-w-md py-16 text-center">
       <h1 className="text-lg font-semibold">{nombre ? `${nombre} está desactivado` : "Apartado desactivado"}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Puedes activarlo en <Link className="text-primary underline" href="/settings/modulos/">Configuración → Módulos</Link>.</p>
+      <p className="mt-2 text-sm text-muted-foreground">Puedes activarlo en <Link className="text-primary underline" href="/ajustes/modulos/">Ajustes → Módulos</Link>.</p>
     </div>
   );
 }
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: React.ReactNode }) {
+  const path = usePathname();
+  // En el móvil la cabecera ya dice el nombre de la sección: no se repite como título de la página
+  const repetido = tituloDe(path) === title;
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-4 flex flex-wrap items-end justify-between gap-3 lg:mb-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        <h1 className={cn("text-xl font-semibold tracking-tight", repetido && "sr-only lg:not-sr-only")}>{title}</h1>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions}

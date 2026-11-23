@@ -33,17 +33,17 @@ def gym_insight(gym: dict, today: date) -> dict | None:
         rango = f"desde el {_dm(p['desde'])}" + (f" hasta el {_dm(p['hasta'])}" if p.get("hasta") else "")
         if p.get("en_curso"):
             return item("siguiente", "En pausa del gym", f"{motivo} {rango}: estos días no cuentan como entrenos perdidos. "
-                        "Al volver, el Coach baja la carga la primera sesión.", "Pausas del gym", "/gym/")
+                        "Al volver, el Coach baja la carga la primera sesión.", "Pausas del gym", "/entrenamiento/")
         if gym["planificadas"] == 0:
             return item("siguiente", "Semana de pausa", f"{motivo} {rango}: no cuenta como semana perdida. "
-                        "La vuelta va al ~90 % de la carga y sin llegar al fallo.", "Pausas del gym", "/gym/")
+                        "La vuelta va al ~90 % de la carga y sin llegar al fallo.", "Pausas del gym", "/entrenamiento/")
     previstas = min(today.weekday() + 1, gym["planificadas"])  # lunes a viernes; hoy puede no haber entrenado aún
     if gym["sesiones"] >= gym["planificadas"]:
-        return item("bien", "Semana completa", f"Has hecho las {gym['sesiones']} sesiones de la semana. Toca descansar.", "Gym.md", "/gym/")
+        return item("bien", "Semana completa", f"Has hecho las {gym['sesiones']} sesiones de la semana. Toca descansar.", "Gym.md", "/entrenamiento/")
     if previstas >= 2 and gym["sesiones"] <= previstas - 2:
-        return item("aviso", "Vas por detrás en el gym", f"Llevas {gym['sesiones']} de {previstas} sesiones previstas hasta hoy.", "Gym.md", "/gym/")
+        return item("aviso", "Vas por detrás en el gym", f"Llevas {gym['sesiones']} de {previstas} sesiones previstas hasta hoy.", "Gym.md", "/entrenamiento/")
     if gym["sesiones"] >= previstas and previstas > 0:
-        return item("bien", "Al día en el gym", f"{gym['sesiones']} sesiones esta semana, como estaba previsto.", "Gym.md", "/gym/")
+        return item("bien", "Al día en el gym", f"{gym['sesiones']} sesiones esta semana, como estaba previsto.", "Gym.md", "/entrenamiento/")
     return None
 
 
@@ -79,7 +79,7 @@ def build(db: Session, today: date, gym: dict, estudios: dict, carrera: dict, ta
     atrasadas = [t for t in tareas if t.get("atrasada")]
     if atrasadas:
         n = len(atrasadas)
-        out.append(item("aviso", "Tareas atrasadas", f"{n} {'tarea' if n == 1 else 'tareas'}. La más antigua: {atrasadas[0]['texto']}.", "Tareas.md", "/tasks/?t=tasks"))
+        out.append(item("aviso", "Tareas atrasadas", f"{n} {'tarea' if n == 1 else 'tareas'}. La más antigua: {atrasadas[0]['texto']}.", "Tareas.md", "/tareas/"))
     if carrera["ofertas_nuevas"] and not carrera["candidaturas"]:
         out.append(item("siguiente", "Ofertas sin revisar", f"{carrera['ofertas_nuevas']} ofertas nuevas y ninguna en seguimiento.", "Radar de ofertas", "/carrera/"))
     if db.scalar(select(func.count()).select_from(LedgerAccount)):
@@ -104,7 +104,7 @@ def build(db: Session, today: date, gym: dict, estudios: dict, carrera: dict, ta
     out.extend(checkin_insights(db, today))
     por_confirmar = db.scalar(select(func.count()).select_from(Fact).where(Fact.verification == "inferred", Fact.valid_to.is_(None)))
     if por_confirmar:
-        out.append(item("siguiente", f"{asistente()} ha aprendido algo", f"{por_confirmar} por confirmar en «Qué sé de ti».", "Memoria", "/memory/hechos/"))
+        out.append(item("siguiente", f"{asistente()} ha aprendido algo", f"{por_confirmar} por confirmar en «Qué sé de ti».", "Memoria", "/conocimiento/sobre-ti/"))
     # Lo importante primero, pero siempre con sitio para una buena noticia si la hay
     out.sort(key=lambda i: PRIORITY[i["tipo"]])
     bien = next((i for i in out if i["tipo"] == "bien"), None)

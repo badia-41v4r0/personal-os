@@ -189,6 +189,44 @@ async def motor_codex(p: Principal = Depends(require_admin)):
     return r
 
 
+# ---------- credenciales del .env (token de Claude, Telegram): las escribe el Host Agent, aquí nunca se ven ----------
+
+CREDENCIALES = ("CLAUDE_CODE_OAUTH_TOKEN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
+
+
+class ValorIn(BaseModel):
+    valor: str = Field(min_length=1, max_length=400)
+
+
+@router.get("/credenciales")
+async def credenciales():
+    """Qué credenciales están puestas: {"CLAUDE_CODE_OAUTH_TOKEN": true, ...}. Nunca su valor."""
+    try:
+        return await hostagent.call("/v1/credenciales")
+    except Exception:  # noqa: BLE001  (Host Agent parado: se ve como «sin poner», no rompe la página)
+        return {k: False for k in CREDENCIALES}
+
+
+@router.put("/credenciales/{clave}")
+async def credenciales_poner(clave: str, body: ValorIn, p: Principal = Depends(require_admin)):
+    if clave not in CREDENCIALES:
+        raise HTTPException(404, "Esa credencial no se puede cambiar desde el panel")
+    r = await hostagent.call(f"/v1/credenciales/{clave}", method="PUT", json={"valor": body.valor})
+    with session_scope() as db:
+        events.audit(db, p.name, "credenciales.poner", clave)  # nunca el valor
+    return r
+
+
+@router.delete("/credenciales/{clave}")
+async def credenciales_quitar(clave: str, p: Principal = Depends(require_admin)):
+    if clave not in CREDENCIALES:
+        raise HTTPException(404, "Esa credencial no se puede cambiar desde el panel")
+    r = await hostagent.call(f"/v1/credenciales/{clave}", method="DELETE")
+    with session_scope() as db:
+        events.audit(db, p.name, "credenciales.quitar", clave)
+    return r
+
+
 @router.delete("/motor/{prov}")
 async def motor_desconectar(prov: str, p: Principal = Depends(require_admin)):
     if prov not in ("codex", "opencode"):

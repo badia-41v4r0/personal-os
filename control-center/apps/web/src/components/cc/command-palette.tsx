@@ -4,14 +4,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { FileText, Search } from "lucide-react";
 import { api } from "@/lib/api";
-import { NAV, NAV_SYSTEM, AGENTS_TABS } from "./nav";
+import { AJUSTES, NAV, CONOCIMIENTO_TABS } from "./nav";
+import { usePanel } from "./shell";
+import { visible } from "@/lib/instancia";
 
 type Hit = { path: string; name?: string; snippet?: string };
 type Row = { key: string; label: string; hint: string; href: string };
 
-/** Buscador global: ⌘K o Ctrl+K. Apartados del panel y notas de la vault. */
+/** Buscador global: ⌘K o Ctrl+K. Apartados del panel, cada sección de Ajustes y notas de la vault. */
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
+  const { inst } = usePanel();
   const input = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
@@ -35,11 +38,17 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 
   if (!open) return null;
   const needle = q.trim().toLowerCase();
-  const pages: Row[] = [...NAV, ...NAV_SYSTEM, ...AGENTS_TABS]
-    .filter((n, idx, all) => all.findIndex((x) => x.href === n.href) === idx)
-    .filter((n) => !needle || n.label.toLowerCase().includes(needle))
-    .map((n) => ({ key: n.href, label: n.label, hint: "Apartado", href: n.href }));
-  const notes: Row[] = needle.length < 2 ? [] : hits.slice(0, 8).map((h) => ({ key: h.path, label: h.name ?? h.path.split("/").pop() ?? h.path, hint: "Nota", href: `/memory/?p=${encodeURIComponent(h.path)}` }));
+  const sinTildes = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const n0 = sinTildes(needle);
+  const pages: Row[] = [
+    ...NAV.map((n) => ({ ...n, grupo: "Apartado" })),
+    ...CONOCIMIENTO_TABS.slice(1).map((n) => ({ ...n, grupo: "Conocimiento" })),
+    ...AJUSTES.map((n) => ({ ...n, grupo: "Ajustes" })),
+  ]
+    .filter((n) => visible(inst, n.href))
+    .filter((n) => !n0 || sinTildes(`${n.label} ${n.hint ?? ""} ${n.grupo}`).includes(n0))
+    .map((n) => ({ key: n.href, label: n.label, hint: n.grupo, href: n.href }));
+  const notes: Row[] = needle.length < 2 ? [] : hits.slice(0, 8).map((h) => ({ key: h.path, label: h.name ?? h.path.split("/").pop() ?? h.path, hint: "Nota", href: `/conocimiento/?p=${encodeURIComponent(h.path)}` }));
   const rows = [...pages.slice(0, 8), ...notes];
   const go = (r?: Row) => {
     if (r) {

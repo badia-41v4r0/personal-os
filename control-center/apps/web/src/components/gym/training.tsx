@@ -135,8 +135,8 @@ export function TrainingTab() {
         <CardContent>
           {editar && s ? (
             <PlanEditor key={s.fecha + s.nombre} plan={recs.data?.planificada ?? undefined} propuesta={recs.data?.siguiente ?? undefined} fecha={s.fecha} nombre={s.nombre}
-              onCancel={() => router.replace("/gym/?tab=training")}
-              onSaved={() => { router.replace("/gym/?tab=training"); reload(); }} />
+              onCancel={() => router.replace("/entrenamiento/?tab=training")}
+              onSaved={() => { router.replace("/entrenamiento/?tab=training"); reload(); }} />
           ) : <RecommendedCard compact={false} onChanged={reload} />}
         </CardContent>
       </Card>
@@ -170,7 +170,7 @@ export function TrainingTab() {
             <ul className="divide-y divide-border">
               {plans.data?.map((p) => (
                 <li key={p.id}>
-                  <Link href={`/gym/?tab=training&plan=${p.id}`} className={cn("grid grid-cols-[6.5rem_1fr_auto] items-center gap-2 py-2 text-sm hover:text-primary", pid === p.id && "text-primary")}>
+                  <Link href={`/entrenamiento/?tab=training&plan=${p.id}`} className={cn("grid grid-cols-[6.5rem_1fr_auto] items-center gap-2 py-2 text-sm hover:text-primary", pid === p.id && "text-primary")}>
                     <span className="text-muted-foreground">{day(p.fecha)}</span>
                     <span className="truncate">{p.nombre} <span className="text-xs text-muted-foreground">v{p.version}</span></span>
                     <span className="flex items-center gap-2 text-xs">{p.comparacion?.cumplimiento != null && <span className="font-mono tabular-nums">{p.comparacion.cumplimiento} %</span>}<PlanStateBadge estado={p.estado} /></span>

@@ -21,12 +21,12 @@ test("gym: navegación por las 7 pestañas sin errores", async ({ page }) => {
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("response", (r) => { if (r.url().includes("/api/v1/gym") && r.status() >= 500) errors.push(`${r.status()} ${r.url()}`); });
   await login(page);
-  await page.goto("/gym/");
+  await page.goto("/entrenamiento/");
   await expect(page.getByText("Próximo entrenamiento")).toBeVisible();
   await expect(page.getByText("Análisis de Jarvis")).toBeVisible();
   await expect(page.locator(".recharts-surface").first()).toBeVisible();
-  for (const [tab, texto] of [["Training", /Entrenamiento recomendado|Sesión planificada/], ["Progress", "Récords personales (90 días)"],
-    ["Recovery", "Carga reciente por músculo"], ["History", "Importar de Hevy"], ["Routines", "Calendario"], ["Coach", "Propuestas por revisar"]] as const) {
+  for (const [tab, texto] of [["Entreno de hoy", /Entrenamiento recomendado|Sesión planificada/], ["Progreso", "Récords personales (90 días)"],
+    ["Recuperación", "Carga reciente por músculo"], ["Historial", "Importar de Hevy"], ["Rutinas", "Calendario"], ["Coach", "Propuestas por revisar"]] as const) {
     await page.getByRole("navigation", { name: "Secciones del gym" }).getByRole("link", { name: tab }).click();
     await expect(page.getByText(texto).first()).toBeVisible();
   }
@@ -37,7 +37,7 @@ test("gym: navegación por las 7 pestañas sin errores", async ({ page }) => {
 
 test("gym: filtros del historial, detalle y comparación", async ({ page }) => {
   await login(page);
-  await page.goto("/gym/?tab=history");
+  await page.goto("/entrenamiento/?tab=history");
   const filas = page.locator('a[href*="tab=history&w="]');
   await expect(filas.first()).toBeVisible();
   const total = await filas.count();
@@ -53,7 +53,7 @@ test("gym: filtros del historial, detalle y comparación", async ({ page }) => {
 
 test("gym: detalle de ejercicio con periodos y gráficos", async ({ page }) => {
   await login(page);
-  await page.goto("/gym/?tab=progress");
+  await page.goto("/entrenamiento/?tab=progress");
   await page.locator('a[href*="tab=progress&e="]').first().click();
   await expect(page.getByText("Siguiente objetivo")).toBeVisible();
   await expect(page.getByText("Carga por sesión (kg)")).toBeVisible();
@@ -66,7 +66,7 @@ test("gym: detalle de ejercicio con periodos y gráficos", async ({ page }) => {
 test("gym: aceptar, modificar y comparar el entrenamiento recomendado", async ({ page }, info) => {
   test.skip(!MUTA || info.project.name !== "escritorio", "cambia datos: solo en el backend de prueba y en escritorio");
   await login(page);
-  await page.goto("/gym/?tab=training");
+  await page.goto("/entrenamiento/?tab=training");
   await page.getByRole("button", { name: "Aceptar planificación" }).click();
   await expect(page.getByText("Sesión planificada")).toBeVisible();
   await page.getByRole("link", { name: "Modificar" }).first().click();
@@ -83,7 +83,7 @@ test("gym: aceptar, modificar y comparar el entrenamiento recomendado", async ({
 test("gym: editor de rutinas con versiones y sensaciones", async ({ page }, info) => {
   test.skip(!MUTA || info.project.name !== "escritorio", "cambia datos: solo en el backend de prueba y en escritorio");
   await login(page);
-  await page.goto("/gym/?tab=routines");
+  await page.goto("/entrenamiento/?tab=routines");
   await page.getByLabel("Nombre de la rutina nueva").fill(`E2E ${Date.now()}`);
   await page.getByRole("button", { name: "Crear desde mi historial" }).click();
   await expect(page.getByText("Versiones")).toBeVisible();
@@ -94,7 +94,7 @@ test("gym: editor de rutinas con versiones y sensaciones", async ({ page }, info
   await page.getByRole("button", { name: "Guardar", exact: true }).click();
   await expect(page.getByText("v2").first()).toBeVisible();
 
-  await page.goto("/gym/?tab=recovery");
+  await page.goto("/entrenamiento/?tab=recovery");
   await page.getByRole("group", { name: "Energía" }).getByRole("button", { name: "4" }).click();
   await page.getByRole("button", { name: "Guardar sensaciones" }).click();
   await expect(page.getByText(/Guardado el/)).toBeVisible();
@@ -102,7 +102,7 @@ test("gym: editor de rutinas con versiones y sensaciones", async ({ page }, info
 
 test("gym: Coach con su conversación y el historial de decisiones", async ({ page }) => {
   await login(page);
-  await page.goto("/gym/?tab=coach");
+  await page.goto("/entrenamiento/?tab=coach");
   await expect(page.getByText("Coach del gym", { exact: true })).toBeVisible();
   await expect(page.getByText("Historial de decisiones")).toBeVisible();
   await expect(page.getByText("Informes")).toBeVisible();

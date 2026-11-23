@@ -22,12 +22,12 @@ const api = async (path) => (await p0.request.get(U + "/api/v1" + path)).json();
 const sess = (await api("/sessions")).find((s) => s.kind === "independent");
 const ex = (await api("/gym/exercises"))[0];
 const wo = (await api("/gym/workouts"))[0];
-const PAGES = ["/login/", "/", "/chat/", sess && `/chat/?s=${sess.id}`, "/agents/", "/agents/?a=entrenador", "/agents/?new=1",
-  "/virtual-computers/", "/monitor/", "/memory/", "/memory/?p=Jarvis%2FTareas.md", "/tasks/?t=approvals", "/tasks/?t=queues",
-  "/tasks/?t=tasks", "/tasks/?t=timers", "/tasks/?t=requests", "/projects/", "/agenda/",
-  "/avisos/", "/sistema/", "/salud/", "/finanzas/", "/carrera/", "/educacion/", "/objetivos/", "/estilo-de-vida/", "/automatizaciones/", "/integraciones/",
-  "/gym/", ...["training", "progress", "recovery", "history", "routines", "coach"].map((t) => `/gym/?tab=${t}`),
-  ex && `/gym/?e=${ex.id}`, wo && `/gym/?w=${wo.id}`, "/settings/"]
+const PAGES = ["/login/", "/", "/conversaciones/", sess && `/conversaciones/?s=${sess.id}`, "/ajustes/agentes/", "/ajustes/agentes/?a=entrenador", "/ajustes/agentes/?new=1",
+  "/ajustes/ordenadores/", "/ajustes/monitor/", "/conocimiento/", "/conocimiento/?p=Jarvis%2FTareas.md", "/bandeja/", "/ajustes/colas/",
+  "/tareas/", "/ajustes/colas/", "/bandeja/?t=solicitudes", "/proyectos/", "/agenda/",
+  "/bandeja/", "/ajustes/sistema/", "/salud/", "/finanzas/", "/carrera/", "/educacion/", "/objetivos/", "/estilo-de-vida/", "/ajustes/automatizaciones/", "/ajustes/conexiones/",
+  "/entrenamiento/", ...["training", "progress", "recovery", "history", "routines", "coach"].map((t) => `/entrenamiento/?tab=${t}`),
+  ex && `/entrenamiento/?e=${ex.id}`, wo && `/entrenamiento/?w=${wo.id}`, "/ajustes/"]
   .filter(Boolean).filter((p) => !process.env.ONLY || process.env.ONLY.split(",").includes(p));
 
 const results = [];

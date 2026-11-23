@@ -218,3 +218,31 @@ def test_horarios_ida_y_vuelta():
             h.calendars_for(dias, horas)
     with pytest.raises(ValueError):
         h.horarios(["hourly"])
+
+
+def test_credenciales_del_env(tmp_path, monkeypatch):
+    env = tmp_path / ".env"
+    env.write_text("POS_INSTANCE=posdev\nCLAUDE_CODE_OAUTH_TOKEN=\n")
+    monkeypatch.setenv("POS_ENV_FILE", str(env))
+    monkeypatch.setenv("CC_HOSTAGENT_TOKEN", TOKEN)
+    monkeypatch.setenv("CC_DATA_DIR", str(tmp_path))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    import hostagent
+    importlib.reload(hostagent)
+    c = TestClient(hostagent.app)
+    h = {"Authorization": f"Bearer {TOKEN}"}
+    assert c.get("/v1/credenciales", headers=h).json()["CLAUDE_CODE_OAUTH_TOKEN"] is False
+    # Formato malo, clave no permitida o sin token: no se escribe nada
+    assert c.put("/v1/credenciales/CLAUDE_CODE_OAUTH_TOKEN", json={"valor": "hola"}, headers=h).status_code == 422
+    assert c.put("/v1/credenciales/CC_HOSTAGENT_TOKEN", json={"valor": "x" * 40}, headers=h).status_code == 404
+    assert c.put("/v1/credenciales/CLAUDE_CODE_OAUTH_TOKEN", json={"valor": "sk-ant-" + "a" * 30}).status_code == 401
+    assert "sk-ant" not in env.read_text()
+    tok = "sk-ant-oat01-" + "b" * 40
+    r = c.put("/v1/credenciales/CLAUDE_CODE_OAUTH_TOKEN", json={"valor": tok}, headers=h)
+    assert r.status_code == 200 and r.json()["CLAUDE_CODE_OAUTH_TOKEN"] is True and tok not in r.text
+    assert env.read_text() == f"POS_INSTANCE=posdev\nCLAUDE_CODE_OAUTH_TOKEN={tok}\n"  # el resto, igual
+    assert oct(env.stat().st_mode & 0o777) == "0o600"
+    assert c.put("/v1/credenciales/TELEGRAM_CHAT_ID", json={"valor": "-100123"}, headers=h).json()["TELEGRAM_CHAT_ID"] is True
+    assert env.read_text().endswith("TELEGRAM_CHAT_ID=-100123\n")
+    assert c.delete("/v1/credenciales/TELEGRAM_CHAT_ID", headers=h).json()["TELEGRAM_CHAT_ID"] is False
+    assert tok not in (tmp_path / "hostagent-audit.jsonl").read_text()

@@ -32,7 +32,7 @@ log = logging.getLogger("cc.avisos")
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(current_principal)])
 
 LEVELS = ("critical", "action", "info", "silent")
-DEFAULT_URL = "/avisos/"
+DEFAULT_URL = "/bandeja/"
 TZ = ZoneInfo(TZ_NAME)
 QUIET_FROM, QUIET_TO = (23, 0), (7, 30)  # los `info` de madrugada esperan en la bandeja, sin sonar
 PUSH_BODY_MAX = 180
@@ -238,7 +238,16 @@ def listar(limit: int = 100, db: Session = Depends(get_db)):
 
 @router.get("/notifications/count")
 def contar(db: Session = Depends(get_db)):
-    return {"unread": db.scalar(select(func.count()).select_from(Notification).where(Notification.read_at.is_(None)))}
+    """Para la campana: avisos sin leer y lo que espera tu decisión (acciones y solicitudes de permisos)."""
+    from ..approvals import requests_
+    from ..models import Action
+    unread = db.scalar(select(func.count()).select_from(Notification).where(Notification.read_at.is_(None)))
+    acciones = db.scalar(select(func.count()).select_from(Action).where(Action.status == "pending"))
+    try:
+        solicitudes = len(requests_()["pendientes"])
+    except OSError:
+        solicitudes = 0
+    return {"unread": unread, "por_decidir": acciones + solicitudes, "acciones": acciones, "solicitudes": solicitudes}
 
 
 @router.post("/notifications/read-all", dependencies=[Depends(require_admin)])

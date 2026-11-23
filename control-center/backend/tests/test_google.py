@@ -83,7 +83,7 @@ def test_calendario_caducado_se_recuerda(monkeypatch):
 
     monkeypatch.setattr(gcal, "agenda", boom)
     r = agenda.calendario(3)
-    assert "Configuración" in r["error"] and agenda.caducadas() == {"personal": True}
+    assert "Ajustes → Conexiones" in r["error"] and agenda.caducadas() == {"personal": True}
     agenda._caducada.clear()
 
 
@@ -91,7 +91,7 @@ def test_recordatorio_solo_cuando_toca():
     hoy = date(2026, 11, 6)
     items = reminders.google_pending([dict(c, caducada=False) for c in CUENTAS], hoy)
     assert [i["key"] for i in items] == ["rec:google:personal:2026-11-06"]  # a la secundaria le quedan 6 días
-    assert items[0]["url"] == "/settings/" and items[0]["level"] == "action" and "caduca pronto" in items[0]["title"]
+    assert items[0]["url"] == "/ajustes/" and items[0]["level"] == "action" and "caduca pronto" in items[0]["title"]
     caducadas = reminders.google_pending([dict(CUENTAS[0], caducada=True, dias_restantes=-1.0)], hoy)
     assert "ha caducado" in caducadas[0]["title"]
     sin_token = reminders.google_pending([dict(CUENTAS[1], autorizada=False, dias_restantes=None, caducada=False)], hoy)

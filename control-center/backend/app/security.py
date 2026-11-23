@@ -100,7 +100,18 @@ def lookup_session(db: Session, token: str | None) -> AuthSession | None:
 
 
 def origin_ok(origin: str | None) -> bool:
-    return bool(origin) and origin.rstrip("/") in get_settings().allowed_origins
+    """Origen exacto, o `esquema://host:*` para admitir ese host en cualquier puerto."""
+    if not origin:
+        return False
+    origin = origin.rstrip("/")
+    for ok in get_settings().allowed_origins:
+        if ok == origin:
+            return True
+        if ok.endswith(":*"):
+            base = ok[:-2]
+            if origin == base or (origin.startswith(base + ":") and origin[len(base) + 1:].isdigit()):
+                return True
+    return False
 
 
 def client_ip(request: Request) -> str:

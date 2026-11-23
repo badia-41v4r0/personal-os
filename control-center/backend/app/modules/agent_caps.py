@@ -402,6 +402,67 @@ def lifestyle_remove(p: dict, db: Session) -> dict:
     return datos
 
 
+def ocio_add(p: dict, db: Session) -> dict:
+    """Con TMDB, busca el título y copia su ficha y carátula; sin TMDB o sin resultado, lo guarda a mano."""
+    from . import ocio
+    tipo = p.get("tipo") or None
+    if tipo not in (None, "pelicula", "serie"):
+        raise ValueError("Tipo no válido: pelicula o serie")
+    titulo = _safe_line(p.get("titulo", ""))
+    tmdb_id = int(p["tmdb_id"]) if p.get("tmdb_id") else None
+    if tmdb_id and not tipo:
+        raise ValueError("Con tmdb_id hay que decir el tipo")
+    if tmdb_id is None and ocio.configured():
+        m = ocio.best_match(titulo, tipo, int(p["anio"]) if p.get("anio") else None)
+        if m:
+            tmdb_id, tipo = m["tmdb_id"], m["tipo"]
+    if not tipo:
+        raise ValueError("No la encuentro en TMDB: di si es pelicula o serie para guardarla a mano")
+    i = ocio.create(db, tipo=tipo, tmdb_id=tmdb_id, titulo=titulo, estado=p.get("estado") or "pendiente",
+                    valoracion=int(p["valoracion"]) if p.get("valoracion") else None, nota=str(p.get("nota") or "")[:4000], actor="agente")
+    return {"id": i.id, "titulo": i.title, "anio": i.year, "tipo": i.kind, "estado": i.status, "tmdb": i.tmdb_id is not None}
+
+
+def ocio_add_undo(r: dict, db: Session) -> dict:
+    from ..models import MediaItem
+    x = db.get(MediaItem, r["id"])
+    if x is not None:
+        db.delete(x)
+    return {}
+
+
+def _ocio_item(p: dict, db: Session):
+    from ..models import MediaItem
+    if p.get("id"):
+        i = db.get(MediaItem, int(p["id"]))
+    else:
+        t = _safe_line(p.get("titulo", "")).lower()
+        hits = [x for x in db.scalars(select(MediaItem)) if t and t in (x.title.lower(), x.original_title.lower())]
+        i = hits[0] if len(hits) == 1 else None
+    if i is None:
+        raise ValueError("No la encuentro en Ocio: usa el id de ocio.list")
+    return i
+
+
+def ocio_update(p: dict, db: Session) -> dict:
+    from . import ocio
+    i = _ocio_item(p, db)
+    cambios = {k: p[k] for k in ocio.EDITABLE if k in p}
+    if not cambios:
+        raise ValueError("Nada que cambiar")
+    return {"id": i.id, "titulo": i.title, "antes": ocio.update(db, i, cambios, "agente")}
+
+
+def ocio_update_undo(r: dict, db: Session) -> dict:
+    from . import ocio
+    from ..models import MediaItem
+    i = db.get(MediaItem, r["id"])
+    if i is not None:
+        for k, v in r["antes"].items():
+            setattr(i, ocio.EDITABLE[k], v)
+    return {}
+
+
 # ---------- lo que antes hacía la sesión de tmux escribiendo en la vault ----------
 _SLUG = re.compile(r"[^a-z0-9]+")
 VIDEO_URL = re.compile(r"^https://([\w-]+\.)?(instagram\.com|tiktok\.com|youtube\.com|youtu\.be)/\S+$")
@@ -559,6 +620,10 @@ for cap in (
     actions.Capability("goal.create", 1, goal_create, "Crear un objetivo", summary=lambda p: f"Objetivo: {p.get('titulo')}"),
     actions.Capability("goal.milestone", 1, goal_milestone, "Añadir un hito", summary=lambda p: f"Hito: {p.get('titulo')}"),
     actions.Capability("habit.create", 1, habit_create, "Crear un hábito", summary=lambda p: f"Hábito: {p.get('nombre')}"),
+    actions.Capability("ocio.add", 1, ocio_add, "Añadir una peli o serie a Ocio", inverse=ocio_add_undo,
+                       summary=lambda p: f"Ocio: {p.get('titulo') or p.get('tmdb_id')} ({p.get('estado') or 'pendiente'})"),
+    actions.Capability("ocio.update", 1, ocio_update, "Actualizar una peli o serie (estado, nota, capítulo)", inverse=ocio_update_undo,
+                       summary=lambda p: f"Ocio {p.get('id') or p.get('titulo')}: " + ", ".join(f"{k} {p[k]}" for k in ("estado", "valoracion", "temporada", "capitulo") if k in p)),
     actions.Capability("lifestyle.add", 1, lifestyle_add, "Guardar en estilo de vida", summary=lambda p: f"{p.get('tipo')}: {p.get('titulo')}"),
 ):
     actions.register(cap)
@@ -666,4 +731,21 @@ def _lifestyle(args: dict, db: Session):
     return personal.lifestyle(db)
 
 
-gateway.EXTERNAL_TOOLS.update({"mail.recent", "mail.read"})
+@gateway.tool("ocio.list")
+def _ocio_list(args: dict, db: Session):
+    from . import ocio
+    estado = args.get("estado") or None
+    if estado not in (None, *ocio.STATUSES):
+        raise ValueError("estado no válido")
+    # Sin sinopsis: lo justo para saber qué tiene y por dónde va
+    return [{k: v for k, v in x.items() if k not in ("sinopsis", "poster", "capitulos_por_temporada", "actualizado")} for x in ocio.listing(db, estado)]
+
+
+@gateway.tool("ocio.search")
+def _ocio_search(args: dict, db: Session):
+    from . import ocio
+    return ocio.search(_safe_line(args.get("q", ""))[:200], args.get("tipo") or None)
+
+
+# Las sinopsis de TMDB son texto de terceros
+gateway.EXTERNAL_TOOLS.update({"mail.recent", "mail.read", "ocio.search"})

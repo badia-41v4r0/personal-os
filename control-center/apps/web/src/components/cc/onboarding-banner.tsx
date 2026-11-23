@@ -66,11 +66,11 @@ export function OnboardingBanner({ modulo }: { modulo: Modulo }) {
       <CardContent className="space-y-3 py-4">
         <div className="flex flex-wrap items-start gap-3">
           <Sparkles className="mt-0.5 size-5 text-primary" />
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 basis-60">
             <p className="font-medium">Primera vez en {modulo.nombre}</p>
-            <p className="text-sm text-muted-foreground">{modulo.descripcion} Su asistente te ayuda a dejarlo listo; nada se guarda sin que lo apruebes. «Ahora no» la quita (puedes configurarlo después desde Configuración).</p>
+            <p className="text-sm text-muted-foreground">{modulo.descripcion} Su asistente te ayuda a dejarlo listo; nada se guarda sin que lo apruebes. «Ahora no» la quita (puedes configurarlo después desde Ajustes → Módulos).</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex w-full gap-2 sm:w-auto">
             {abierto
               ? <Button size="sm" variant="outline" onClick={() => setAbierto(false)}><X /> Plegar</Button>
               : <Button size="sm" onClick={() => setAbierto(true)}>Configurar con el asistente</Button>}

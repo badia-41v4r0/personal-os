@@ -25,11 +25,11 @@ test("la app se puede instalar: manifest, iconos y service worker", async ({ req
 
 test("la bandeja muestra los avisos y se marcan como leídos", async ({ page, isMobile }) => {
   await login(page);
-  await page.goto("/avisos/");
+  await page.goto("/bandeja/?t=avisos");
   await expect(page.getByRole("heading", { name: "Avisos" })).toBeVisible();
   await expect(page.getByText("Aviso de la prueba E2E").first()).toBeVisible();
   if (isMobile) {
-    await expect(page.getByRole("link", { name: /^Avisos/ }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /^Bandeja/ }).first()).toBeVisible();
   }
 });
 
@@ -49,6 +49,6 @@ test("sin soporte de push o sin instalar, la página lo explica sin romperse", a
     Object.defineProperty(navigator, "userAgent", { get: () => "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X)" });
   });
   await login(page);
-  await page.goto("/avisos/");
+  await page.goto("/ajustes/conexiones/");
   await expect(page.getByText("Instala el panel para recibir avisos")).toBeVisible();
 });

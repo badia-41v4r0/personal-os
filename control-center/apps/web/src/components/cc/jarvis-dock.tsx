@@ -102,7 +102,7 @@ export function JarvisDock({ assistant, onClose }: { assistant: Assistant; onClo
           <div className="text-sm font-semibold">{assistant.name}</div>
           <div className="text-[11px] text-muted-foreground">{busy ? "Trabajando…" : state?.tmux === false ? "Sin conexión" : assistant.hint}</div>
         </div>
-        {!assistant.key && <Link href="/chat/" aria-label="Abrir la conversación completa" className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted"><ExternalLink className="size-4" /></Link>}
+        {!assistant.key && <Link href="/conversaciones/" aria-label="Pantalla completa e historial de conversaciones" title="Pantalla completa e historial" className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted"><ExternalLink className="size-4" /></Link>}
         {onClose && <Button variant="ghost" size="icon-sm" aria-label="Cerrar" onClick={onClose}><X /></Button>}
       </div>
 

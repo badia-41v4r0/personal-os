@@ -1,6 +1,6 @@
 # Motores de IA
 
-Se elige en **Configuración → Motor de IA** (y en la bienvenida). Todos corren igual de aislados: un contenedor
+Se elige en **Ajustes → Motor de IA** (y en la bienvenida). Todos corren igual de aislados: un contenedor
 efímero por turno, sin acceso a tu `$HOME` ni a Docker, y las escrituras en tus datos pasan por acciones del
 Personal OS (con aprobación cuando toca).
 
@@ -19,11 +19,11 @@ respuesta lo dice. Nunca se cambia de motor a escondidas.
 
 ## Conectar cada uno
 
-- **Claude Code:** en el PC, `claude setup-token`, y pon el token en `.env` (`CLAUDE_CODE_OAUTH_TOKEN=`). Después
-  `bin/pos actualizar`.
-- **Codex:** en el PC, `codex login`. En Configuración → Motor de IA, pulsa **Conectar Codex**: copia tu sesión a la
+- **Claude Code:** en el PC, `claude setup-token`, y pega el token en Ajustes → Motor de IA (o en la bienvenida). Lo
+  guarda el Host Agent en el `.env` del PC con permisos 600; el panel nunca lo vuelve a mostrar.
+- **Codex:** en el PC, `codex login`. En Ajustes → Motor de IA, pulsa **Conectar Codex**: copia tu sesión a la
   del Personal OS (archivo 600). Codex renueva su token durante los turnos y se guarda el nuevo.
-- **OpenRouter:** crea una clave en openrouter.ai y pégala en Configuración → Motor de IA. Se guarda en un archivo
+- **OpenRouter:** crea una clave en openrouter.ai y pégala en Ajustes → Motor de IA. Se guarda en un archivo
   que solo lee tu usuario y solo la recibe el turno en curso. Pon modelos en formato `openrouter/proveedor/modelo` y un
   **límite de gasto mensual**: al llegar, no se lanzan más turnos con él. Te recomendamos fijar también un límite en la
   propia clave de OpenRouter.

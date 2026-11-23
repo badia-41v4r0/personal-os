@@ -62,8 +62,8 @@ function Calendario() {
               return (
                 <div key={d.fecha} className={cn("min-w-0 rounded-md border p-1.5 text-xs", EST[d.estado], fuera && "opacity-40", d.fecha === today() && "ring-1 ring-primary")}>
                   <div className="flex justify-between gap-1 text-muted-foreground"><span>{modo === "semana" ? `${d.dia.slice(0, 3)} ${d.fecha.slice(8)}` : d.fecha.slice(8)}</span>{modo === "semana" && <span>{d.estado}</span>}</div>
-                  {d.hechas.length > 0 ? d.hechas.map((h) => <Link key={h.id} href={`/gym/?tab=history&w=${h.id}`} className="-my-0.5 block truncate py-1 font-medium hover:text-primary">{h.nombre}</Link>)
-                    : d.planificada_id ? <Link href={`/gym/?tab=training&plan=${d.planificada_id}`} className="-my-0.5 block truncate py-1 hover:text-primary">{d.prevista}</Link>
+                  {d.hechas.length > 0 ? d.hechas.map((h) => <Link key={h.id} href={`/entrenamiento/?tab=history&w=${h.id}`} className="-my-0.5 block truncate py-1 font-medium hover:text-primary">{h.nombre}</Link>)
+                    : d.planificada_id ? <Link href={`/entrenamiento/?tab=training&plan=${d.planificada_id}`} className="-my-0.5 block truncate py-1 hover:text-primary">{d.prevista}</Link>
                     : <div className="truncate">{d.prevista ?? (modo === "semana" ? "Descanso" : "")}</div>}
                   {modo === "semana" && d.hechas[0] && <div className="text-muted-foreground">{d.hechas[0].series} series</div>}
                 </div>
@@ -76,7 +76,7 @@ function Calendario() {
           <div className="rounded-lg border border-border p-2 text-xs">
             <b>Reorganizar la semana</b> <NivelBadge n="recomendacion" />
             <ul className="mt-1 space-y-0.5">{c.data!.reprogramar.map((r) => <li key={r.desde}>{r.sesion} ({r.desde.slice(5)}) → {r.hasta ? r.hasta.slice(5) : "no recuperarla"}: {r.motivo}</li>)}</ul>
-            <Link href="/gym/?tab=training" className="inline-block py-1 text-primary hover:underline">Aceptarlo en Training</Link>
+            <Link href="/entrenamiento/?tab=training" className="inline-block py-1 text-primary hover:underline">Aceptarlo en Entreno de hoy</Link>
           </div>
         )}
       </CardContent>
@@ -230,7 +230,7 @@ export function RoutinesTab() {
       setMsg({ ok: true, text: "Creada en borrador." });
       setNombre("");
       list.reload();
-      router.push(`/gym/?tab=routines&r=${r.id}`);
+      router.push(`/entrenamiento/?tab=routines&r=${r.id}`);
     } catch (e) {
       setMsg({ ok: false, text: errMsg(e) });
     }
@@ -247,7 +247,7 @@ export function RoutinesTab() {
             <ul className="divide-y divide-border">
               {list.data?.map((r) => (
                 <li key={r.id}>
-                  <Link href={`/gym/?tab=routines&r=${r.id}`} className={cn("flex items-center justify-between gap-2 py-2 text-sm hover:text-primary", rid === r.id && "text-primary")}>
+                  <Link href={`/entrenamiento/?tab=routines&r=${r.id}`} className={cn("flex items-center justify-between gap-2 py-2 text-sm hover:text-primary", rid === r.id && "text-primary")}>
                     <span className="truncate">{r.nombre}</span>
                     <span className="shrink-0 text-xs text-muted-foreground">{r.estado === "active" ? "activa" : r.estado === "archived" ? "archivada" : "borrador"} · v{r.version}</span>
                   </Link>

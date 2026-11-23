@@ -227,7 +227,7 @@ export function ExerciseDetail({ id }: { id: string }) {
         <CardContent className="divide-y divide-border">
           {[...d.historial_roles].reverse().map((h) => (
             <div key={h.sesion_id} className="grid gap-2 py-2 md:grid-cols-[8rem_1fr_auto]">
-              <Link href={`/gym/?tab=history&w=${h.sesion_id}`} className="-my-1 py-1 text-sm hover:text-primary">{day(h.fecha)} <span className="text-xs text-muted-foreground">{h.sesion}</span></Link>
+              <Link href={`/entrenamiento/?tab=history&w=${h.sesion_id}`} className="-my-1 py-1 text-sm hover:text-primary">{day(h.fecha)} <span className="text-xs text-muted-foreground">{h.sesion}</span></Link>
               <div className="space-y-1"><SerieChips series={h.series} />{h.avisos.length > 0 && <p className="text-xs text-warning">{h.avisos.join("; ")}</p>}{h.notas && <p className="text-xs text-muted-foreground">Nota: {h.notas}</p>}</div>
               <span className="font-mono text-xs tabular-nums text-muted-foreground">{kg(h.volumen)}</span>
             </div>
@@ -318,7 +318,7 @@ export function ProgressTab() {
             <ul className="max-h-[28rem] divide-y divide-border overflow-y-auto pr-1">
               {lista.map((x) => (
                 <li key={x.id}>
-                  <Link href={`/gym/?tab=progress&e=${x.id}`} className="flex items-center justify-between gap-2 py-2 text-sm hover:text-primary">
+                  <Link href={`/entrenamiento/?tab=progress&e=${x.id}`} className="flex items-center justify-between gap-2 py-2 text-sm hover:text-primary">
                     <span className="min-w-0 truncate">{x.nombre}<span className="block text-xs text-muted-foreground">{x.sesiones} sesiones · última {x.ultima.slice(5)}{x.mejor_e1rm ? ` · e1RM ≈ ${x.mejor_e1rm} kg` : ""}</span></span>
                     {estado[x.id] && <EstadoBadge e={estado[x.id].estado} conf={estado[x.id].confianza} />}
                   </Link>
@@ -338,7 +338,7 @@ export function ProgressTab() {
             <ul className="max-h-[28rem] divide-y divide-border overflow-y-auto pr-1">
               {eventos.map((e, i) => (
                 <li key={i} className="flex items-center justify-between gap-2 py-1.5 text-sm">
-                  <Link href={`/gym/?tab=progress&e=${e.ejercicio_id}`} className="min-w-0 truncate hover:text-primary">{e.nombre}<span className="block truncate text-xs text-muted-foreground">{REC[e.tipo] ?? e.tipo}: {e.detalle}</span></Link>
+                  <Link href={`/entrenamiento/?tab=progress&e=${e.ejercicio_id}`} className="min-w-0 truncate hover:text-primary">{e.nombre}<span className="block truncate text-xs text-muted-foreground">{REC[e.tipo] ?? e.tipo}: {e.detalle}</span></Link>
                   <span className="flex shrink-0 flex-col items-end gap-0.5 text-xs text-muted-foreground">{e.fecha.slice(5)}<NivelBadge n={e.nivel} /></span>
                 </li>
               ))}

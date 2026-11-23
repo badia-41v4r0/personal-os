@@ -40,7 +40,7 @@ export function WorkoutDetail({ id }: { id: string }) {
         <span>{day(data.fecha)}</span><span>{data.series} series efectivas</span><span>{kg(data.volumen)}</span>
         <span className={dur ? "" : "text-muted-foreground"}>Duración: {dur ? `${dur} min` : "no registrada"}</span>
         {data.hevy && <span className="text-muted-foreground">Hevy: {data.hevy}</span>}
-        {data.anterior && <Link href={`/gym/?tab=history&cmp=${data.anterior.id},${data.id}`} className="-my-1 flex items-center gap-1 py-1 text-primary hover:underline"><GitCompare className="size-3.5" /> Comparar con la anterior ({data.anterior.fecha.slice(5)})</Link>}
+        {data.anterior && <Link href={`/entrenamiento/?tab=history&cmp=${data.anterior.id},${data.id}`} className="-my-1 flex items-center gap-1 py-1 text-primary hover:underline"><GitCompare className="size-3.5" /> Comparar con la anterior ({data.anterior.fecha.slice(5)})</Link>}
       </div>
       <p className="text-[11px] text-muted-foreground">Fuente: {data.fuente}{data.hevy_traza ? ` · importado de Hevy (id ${data.hevy_traza.external_id}, ${data.hevy_traza.filas} filas originales)` : ""}. Descansos y RPE: solo si están registrados.</p>
       {data.records.length > 0 && (
@@ -53,7 +53,7 @@ export function WorkoutDetail({ id }: { id: string }) {
           {data.ejercicios.map((e) => (
             <div key={e.id + e.raw} className="grid gap-2 py-3 md:grid-cols-[1fr_auto]">
               <div className="min-w-0 space-y-1.5">
-                <Link href={`/gym/?tab=progress&e=${e.id}`} className="-my-1 inline-block py-1 font-medium hover:text-primary">{e.nombre}</Link>
+                <Link href={`/entrenamiento/?tab=progress&e=${e.id}`} className="-my-1 inline-block py-1 font-medium hover:text-primary">{e.nombre}</Link>
                 <div className="text-xs text-muted-foreground">
                   {musc(e.principales) || (e.tipo === "cardio" ? "Cardio" : "Sin clasificar")}{e.secundarios.length > 0 && ` · secundarios: ${musc(e.secundarios)}`}
                 </div>
@@ -68,8 +68,8 @@ export function WorkoutDetail({ id }: { id: string }) {
       <Card>
         <CardHeader><CardTitle>Comparación con lo planificado</CardTitle></CardHeader>
         <CardContent>
-          {data.comparacion ? <><ComparacionView c={data.comparacion} /><Link href={`/gym/?tab=training&plan=${data.plan!.id}`} className="mt-2 inline-block text-xs text-primary hover:underline">Ver la planificación (v{data.plan!.version})</Link></>
-            : <p className="text-sm text-muted-foreground">No había una sesión planificada asociada a este entreno. Se asocian solas si coinciden fecha y sesión; si no, desde Training → Planificadas.</p>}
+          {data.comparacion ? <><ComparacionView c={data.comparacion} /><Link href={`/entrenamiento/?tab=training&plan=${data.plan!.id}`} className="mt-2 inline-block text-xs text-primary hover:underline">Ver la planificación (v{data.plan!.version})</Link></>
+            : <p className="text-sm text-muted-foreground">No había una sesión planificada asociada a este entreno. Se asocian solas si coinciden fecha y sesión; si no, desde Entreno de hoy → Planificadas.</p>}
         </CardContent>
       </Card>
     </div>
@@ -94,7 +94,7 @@ function CompareView({ a, b }: { a: string; b: string }) {
                 const ea = e.a?.top?.e1rm, eb = e.b?.top?.e1rm;
                 return (
                   <tr key={e.id}>
-                    <td className="py-1.5 pr-2"><Link href={`/gym/?tab=progress&e=${e.id}`} className="hover:text-primary">{e.nombre}</Link></td>
+                    <td className="py-1.5 pr-2"><Link href={`/entrenamiento/?tab=progress&e=${e.id}`} className="hover:text-primary">{e.nombre}</Link></td>
                     <td className="font-mono tabular-nums">{e.a ? t(e.a.top) : "—"}</td>
                     <td className={cn("font-mono tabular-nums", ea && eb && (eb > ea ? "text-success" : eb < ea ? "text-destructive" : ""))}>{e.b ? t(e.b.top) : "—"}</td>
                     <td className="font-mono tabular-nums">{e.a?.series ?? "—"} → {e.b?.series ?? "—"}</td>
@@ -228,7 +228,7 @@ export function HistoryTab() {
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             Marca dos para compararlas.
-            {sel.length === 2 && <Link href={`/gym/?tab=history&cmp=${[...sel].sort().join(",")}`} className="flex items-center gap-1 text-primary hover:underline"><GitCompare className="size-3.5" /> Comparar</Link>}
+            {sel.length === 2 && <Link href={`/entrenamiento/?tab=history&cmp=${[...sel].sort().join(",")}`} className="flex items-center gap-1 text-primary hover:underline"><GitCompare className="size-3.5" /> Comparar</Link>}
             {sel.length > 0 && <button type="button" className="hover:text-foreground" onClick={() => setSel([])}>Quitar selección</button>}
           </div>
           {workouts.error && <ErrorState message={workouts.error} />}
@@ -240,7 +240,7 @@ export function HistoryTab() {
                 <input type="checkbox" aria-label={`Seleccionar ${w.fecha} ${w.nombre}`} className="size-4 shrink-0 accent-primary"
                   checked={sel.includes(w.id)} disabled={!sel.includes(w.id) && sel.length >= 2}
                   onChange={(e) => setSel(e.target.checked ? [...sel, w.id] : sel.filter((x) => x !== w.id))} />
-                <Link href={`/gym/?tab=history&w=${w.id}`} className="grid min-w-0 flex-1 grid-cols-[6.5rem_1fr_auto] items-center gap-3 py-2 text-sm hover:text-primary">
+                <Link href={`/entrenamiento/?tab=history&w=${w.id}`} className="grid min-w-0 flex-1 grid-cols-[6.5rem_1fr_auto] items-center gap-3 py-2 text-sm hover:text-primary">
                   <span className="text-muted-foreground">{day(w.fecha)}</span>
                   <span className="truncate">{w.nombre} <span className="text-xs text-muted-foreground">· {w.ejercicios} ejercicios{w.planificada ? " · planificada" : ""}</span></span>
                   <span className="font-mono text-xs tabular-nums text-muted-foreground">{w.series} series · {kg(w.volumen)}{w.duracion_min ? ` · ${w.duracion_min} min` : ""}</span>

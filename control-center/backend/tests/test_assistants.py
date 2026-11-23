@@ -87,13 +87,14 @@ def test_abrir_el_coach_no_crea_nada(client, auth):
         assert s.query(ChatSession).filter(ChatSession.name == "Coach del gym").count() == 0
 
 
-AJENO = {"entrenador": ("finance", "uni", "career", "task", "calendar", "mail", "goal", "lifestyle", "fantasy", "note"),
-         "finanzas": ("gym", "uni", "career", "task", "calendar", "mail", "goal", "lifestyle", "fantasy", "note", "memory.search", "memory.context"),
-         "salud": ("gym", "finance", "uni", "career", "task", "calendar", "mail", "goal", "lifestyle", "fantasy", "note", "memory.search"),
-         "carrera": ("gym", "finance", "uni", "calendar", "mail", "goal", "lifestyle", "fantasy", "note", "memory.search"),
-         "tutor": ("gym", "finance", "career", "calendar", "mail", "goal", "lifestyle", "fantasy", "note", "memory.search", "tasks.list"),
-         "objetivos": ("gym", "finance", "uni", "career", "task", "calendar", "mail", "lifestyle", "fantasy", "note", "memory.search"),
-         "estilo": ("gym", "finance", "uni", "career", "task", "calendar", "mail", "goal", "fantasy", "note", "memory.search")}
+AJENO = {"entrenador": ("finance", "uni", "career", "task", "calendar", "mail", "goal", "lifestyle", "ocio", "fantasy", "note"),
+         "finanzas": ("gym", "uni", "career", "task", "calendar", "mail", "goal", "lifestyle", "ocio", "fantasy", "note", "memory.search", "memory.context"),
+         "salud": ("gym", "finance", "uni", "career", "task", "calendar", "mail", "goal", "lifestyle", "ocio", "fantasy", "note", "memory.search"),
+         "carrera": ("gym", "finance", "uni", "calendar", "mail", "goal", "lifestyle", "ocio", "fantasy", "note", "memory.search"),
+         "tutor": ("gym", "finance", "career", "calendar", "mail", "goal", "lifestyle", "ocio", "fantasy", "note", "memory.search", "tasks.list"),
+         "objetivos": ("gym", "finance", "uni", "career", "task", "calendar", "mail", "lifestyle", "ocio", "fantasy", "note", "memory.search"),
+         "estilo": ("gym", "finance", "uni", "career", "task", "calendar", "mail", "goal", "ocio", "fantasy", "note", "memory.search"),
+         "ocio": ("gym", "finance", "uni", "career", "task", "calendar", "mail", "goal", "lifestyle", "fantasy", "note", "memory.search")}
 
 
 @pytest.mark.parametrize("nombre", list(AJENO))

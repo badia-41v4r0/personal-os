@@ -47,7 +47,7 @@ export function SessionExercises({ ejercicios, compact = false }: { ejercicios: 
           <li key={e.id + i} className="rounded-lg border border-border p-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
-                <Link href={`/gym/?tab=progress&e=${e.id}`} className="-my-1 inline-block py-1 font-medium hover:text-primary">{i + 1}. {e.nombre}</Link>
+                <Link href={`/entrenamiento/?tab=progress&e=${e.id}`} className="-my-1 inline-block py-1 font-medium hover:text-primary">{i + 1}. {e.nombre}</Link>
                 <div className="text-xs text-muted-foreground">
                   {musc(e.principales ?? []) || "sin clasificar"}{e.secundarios?.length ? ` · secundarios: ${musc(e.secundarios)}` : ""}
                   {e.categoria && ` · ${e.categoria.replace("_", " ")}`}{e.opcional && " · opcional"}{e.editado && " · editado a mano"}
@@ -193,7 +193,7 @@ export function SessionActions({ propuesta, plan, onChanged, verHref }: { propue
   const sustituir = () => run(() => post("/gym/plans", { fecha: fecha || objetivo.fecha, nombre, motivo: `Sustituye a ${objetivo.nombre}` }), `Planificada ${nombre}.`);
   const preguntar = () => run(async () => {
     await post("/gym/coach/chat", { text: `Explícame el entrenamiento ${plan ? "planificado" : "recomendado"} para el ${objetivo.fecha} (${objetivo.nombre}): por qué esos ejercicios y esas cargas, y qué debo vigilar.` });
-    router.push("/gym/?tab=coach");
+    router.push("/entrenamiento/?tab=coach");
   }, "Pregunta enviada al Coach.");
 
   return (
@@ -201,7 +201,7 @@ export function SessionActions({ propuesta, plan, onChanged, verHref }: { propue
       <div className="flex flex-wrap gap-2">
         {verHref && <Link href={verHref} className={buttonVariants({ size: "sm", variant: "outline" })}>Ver entrenamiento</Link>}
         {!plan && propuesta && <Button size="sm" disabled={busy} onClick={aceptar}><Check /> Aceptar planificación</Button>}
-        <Link href="/gym/?tab=training&editar=1" className={buttonVariants({ size: "sm", variant: "outline" })}><Pencil /> Modificar</Link>
+        <Link href="/entrenamiento/?tab=training&editar=1" className={buttonVariants({ size: "sm", variant: "outline" })}><Pencil /> Modificar</Link>
         <Button size="sm" variant="outline" aria-expanded={modo === "sustituir"} onClick={() => setModo(modo === "sustituir" ? "" : "sustituir")}><Repeat /> Sustituir</Button>
         <Button size="sm" variant="outline" aria-expanded={modo === "posponer"} onClick={() => setModo(modo === "posponer" ? "" : "posponer")}><CalendarClock /> Posponer</Button>
         <Button size="sm" variant="ghost" disabled={busy} onClick={preguntar}><MessageSquare /> Preguntar a {asistente()}</Button>

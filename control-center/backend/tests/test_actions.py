@@ -58,7 +58,7 @@ def test_nivel_3_espera_y_avisa(caps):
     assert r["status"] == "pending" and caps == []
     with dbm.session_scope() as s:
         n = s.query(Notification).one()
-        assert n.level == "action" and n.url == "/tasks/?t=approvals" and n.body == "Hacer 1"
+        assert n.level == "action" and n.url == "/bandeja/" and n.body == "Hacer 1"
 
 
 def test_aprobar_ejecuta(caps):

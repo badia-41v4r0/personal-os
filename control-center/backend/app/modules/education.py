@@ -529,7 +529,7 @@ def canvas_check(p: Principal = Depends(require_admin), db: Session = Depends(ge
         return check_canvas(db)
     except Exception as e:  # noqa: BLE001
         caducado = e.__class__.__name__ == "Caducado" or "invalid_grant" in str(e)
-        raise HTTPException(502, "El permiso de Google ha caducado: renuévalo en Configuración" if caducado else f"Calendario no disponible: {str(e)[:120]}") from e
+        raise HTTPException(502, "El permiso de Google ha caducado: renuévalo en Ajustes → Conexiones" if caducado else f"Calendario no disponible: {str(e)[:120]}") from e
 
 
 @router.post("/canvas/seen")
@@ -620,7 +620,7 @@ def cost(db: Session) -> dict:
     marca = str(plat.get("pago") or plat.get("centro") or "").strip()
     if not marca:
         return {"asientos": 0, "pagado": None, "creditos": None, "por_credito": None,
-                "nota": "Indica en Configuración → Educación cómo aparece tu universidad en el banco para calcular el coste."}
+                "nota": "Dile al asistente de Educación (Ajustes → Módulos) cómo aparece tu universidad en el banco para calcular el coste."}
     q = (select(func.count(func.distinct(JournalEntry.id)), func.coalesce(func.sum(Posting.amount), 0))
          .join(Posting, Posting.entry_id == JournalEntry.id).join(LedgerAccount, LedgerAccount.id == Posting.account_id)
          .where(JournalEntry.status == "posted", LedgerAccount.kind == "expense", Posting.amount > 0,

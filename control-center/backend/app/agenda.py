@@ -61,7 +61,7 @@ def calendario(dias: int) -> dict:
         caducado = _es_caducado(e)
         if caducado:
             _caducada["personal"] = True
-        return {"eventos": [], "error": "El permiso de Google ha caducado: renuévalo en Configuración"
+        return {"eventos": [], "error": "El permiso de Google ha caducado: renuévalo en Ajustes → Conexiones"
                 if caducado else f"Calendario no disponible: {str(e)[:120]}"}
 
 
@@ -146,8 +146,8 @@ def tasks():
         importar_tareas(db)
         todas = [{"texto": t.text, "fecha": t.due, "area": t.area, "hecho": t.done, "hecho_el": t.done_on}
                  for t in db.scalars(select(Task).where(Task.removed_at.is_(None)))]
-    if not todas:
-        return {"pendientes": [], "hechas": []}
+    if not todas:  # instalación nueva: sin tareas, pero con sus áreas (el formulario de «Nueva tarea» las necesita)
+        return {"pendientes": [], "hechas": [], "areas": tareas.ajustes.areas(), "fuente": "Jarvis/Tareas.md"}
     hoy = date.today().isoformat()
     pend = [t | {"atrasada": bool(t["fecha"] and t["fecha"] < hoy)} for t in todas if not t["hecho"]]
     pend.sort(key=lambda t: (t["fecha"] is None, t["fecha"] or ""))

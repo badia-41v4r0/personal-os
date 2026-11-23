@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
-import { ArrowRight, BriefcaseBusiness, CalendarDays, Dumbbell, GraduationCap, Landmark, Sparkles, Target } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, BriefcaseBusiness, ChevronDown, CalendarDays, Dumbbell, GraduationCap, Landmark, Sparkles, Target } from "lucide-react";
 import type { ReactNode } from "react";
 import { Bars } from "@/components/cc/charts";
 import { CheckInCard, type CheckInView } from "@/components/cc/checkin-card";
 import { usePanel } from "@/components/cc/shell";
+import { PorConfigurar } from "@/components/cc/por-configurar";
+import { visible } from "@/lib/instancia";
 import { Empty, ErrorState, Loading } from "@/components/cc/states";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApi } from "@/lib/hooks";
@@ -32,11 +34,31 @@ const INSIGHT: Record<string, string> = { aviso: "bg-warning/12", siguiente: "bg
 const signed = (n: number) => `${n > 0 ? "+" : ""}${n.toLocaleString("es-ES")} %`;
 
 function Tile({ href, icon: Icon, title, children }: { href: string; icon: typeof Dumbbell; title: string; children: ReactNode }) {
+  const { inst } = usePanel();
+  if (!visible(inst, href)) return null;  // módulo desactivado: no se enseña
   return (
-    <Link href={href} className="min-w-0 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40">
+    <Link href={href} className="w-40 shrink-0 snap-start rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/40 lg:w-auto lg:min-w-0 lg:p-4">
       <div className="flex items-center gap-2 text-sm font-medium"><Icon className="size-4 text-primary" />{title}</div>
       <div className="mt-3 text-sm">{children}</div>
     </Link>
+  );
+}
+
+/** Tarjeta que en el móvil se pliega (con un resumen en la cabecera) y en el escritorio se ve entera. */
+function Plegable({ titulo, icono, resumen, extra, children, abierta = false }: { titulo: ReactNode; icono?: ReactNode; resumen?: ReactNode; extra?: ReactNode; children: ReactNode; abierta?: boolean }) {
+  const [open, setOpen] = useState(abierta);
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="-my-2 flex min-h-11 min-w-0 flex-1 items-center gap-2 py-2 text-left lg:pointer-events-none lg:min-h-0">
+          <CardTitle className="flex items-center gap-2">{icono}{titulo}</CardTitle>
+          {resumen && !open && <span className="ml-auto min-w-0 truncate text-xs font-normal text-muted-foreground lg:hidden">{resumen}</span>}
+          <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform lg:hidden ${open ? "rotate-180" : ""} ${resumen ? "" : "ml-auto"}`} />
+        </button>
+        {extra}
+      </CardHeader>
+      <CardContent className={open ? "" : "hidden lg:block"}>{children}</CardContent>
+    </Card>
   );
 }
 
@@ -49,7 +71,7 @@ function SectionLink({ href, children }: { href: string; children: ReactNode }) 
 }
 
 export default function Inicio() {
-  const { lastEvent } = usePanel();
+  const { lastEvent, inst } = usePanel();
   const home = useApi<Home>("/home", 120000);
   const { reload } = home;
   useEffect(() => {
@@ -81,10 +103,12 @@ export default function Inicio() {
         </div>
       </div>
 
+      <PorConfigurar />
+
       <CheckInCard data={d.checkin} onChange={reload} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5">
-        <Tile href="/gym/" icon={Dumbbell} title="Entrenamiento">
+      <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:-mx-6 md:px-6 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-3 lg:overflow-visible lg:px-0 lg:pb-0 2xl:grid-cols-5 [&::-webkit-scrollbar]:hidden">
+        <Tile href="/entrenamiento/" icon={Dumbbell} title="Entrenamiento">
           <div><b className="tabular-nums">{d.gym.sesiones} / {d.gym.planificadas}</b> sesiones</div>
           <div className="mt-2 h-1.5 rounded-full bg-muted" role="progressbar" aria-valuenow={pctGym} aria-valuemin={0} aria-valuemax={100} aria-label="Sesiones de la semana"><div className="h-full rounded-full bg-success" style={{ width: `${pctGym}%` }} /></div>
         </Tile>
@@ -101,42 +125,38 @@ export default function Inicio() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2"><CalendarDays className="size-4 text-primary" />Agenda de hoy</CardTitle>
-            <SectionLink href="/agenda/">Ver agenda</SectionLink>
-          </CardHeader>
-          <CardContent>
-            {d.agenda_error && <ErrorState message={d.agenda_error} />}
-            {d.agenda.length === 0 && !d.agenda_error && <Empty message="Nada en la agenda de hoy" />}
-            <ul className="divide-y divide-border">
-              {d.agenda.map((a, i) => (
-                <li key={`${a.titulo}-${i}`} className="flex gap-3 py-1.5 text-sm">
-                  <span className="w-24 shrink-0 text-xs text-muted-foreground tabular-nums">{a.hora ? `${a.hora}${a.fin ? ` – ${a.fin}` : ""}` : a.tipo === "estudio" ? "Estudio" : "Todo el día"}</span>
-                  <span className="min-w-0 flex-1 truncate" title={a.titulo}>{a.titulo}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        {visible(inst, "/agenda/") && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2"><CalendarDays className="size-4 text-primary" />Agenda de hoy</CardTitle>
+              <SectionLink href="/agenda/">Ver agenda</SectionLink>
+            </CardHeader>
+            <CardContent>
+              {d.agenda_error && <ErrorState message={d.agenda_error} />}
+              {d.agenda.length === 0 && !d.agenda_error && <Empty message="Nada en la agenda de hoy" />}
+              <ul className="divide-y divide-border">
+                {d.agenda.map((a, i) => (
+                  <li key={`${a.titulo}-${i}`} className="flex gap-3 py-1.5 text-sm">
+                    <span className="w-24 shrink-0 text-xs text-muted-foreground tabular-nums">{a.hora ? `${a.hora}${a.fin ? ` – ${a.fin}` : ""}` : a.tipo === "estudio" ? "Estudio" : "Todo el día"}</span>
+                    <span className="min-w-0 flex-1 truncate" title={a.titulo}>{a.titulo}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2"><Dumbbell className="size-4 text-primary" />Entrenamiento</CardTitle>
-            <SectionLink href="/gym/">Ver detalles</SectionLink>
-          </CardHeader>
-          <CardContent>
+        {visible(inst, "/entrenamiento/") && (
+          <Plegable titulo="Entrenamiento" icono={<Dumbbell className="size-4 text-primary" />} extra={<SectionLink href="/entrenamiento/">Ver detalles</SectionLink>}>
             <div className="mb-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
               <div><div className="text-xs text-muted-foreground">Volumen, frente a la semana pasada</div><b className="text-lg tabular-nums">{d.gym.volumen_pct == null ? "—" : signed(d.gym.volumen_pct)}</b></div>
               <div><div className="text-xs text-muted-foreground">Series</div><b className="text-lg tabular-nums">{d.gym.series_pct == null ? "—" : signed(d.gym.series_pct)}</b></div>
             </div>
             <Bars data={d.gym.por_dia} x="dia" y="volumen" unit=" kg" height={120} label="Volumen por día de esta semana" />
-          </CardContent>
-        </Card>
+          </Plegable>
+        )}
 
-        <Card>
-          <CardHeader><CardTitle>Estado general</CardTitle></CardHeader>
-          <CardContent>
+        <Plegable titulo="Estado general" resumen={d.estado_general ? `Ánimo ${d.estado_general.animo ?? "—"} · Sueño ${d.estado_general.sueno ?? "—"} h` : "Sin check-ins"}>
             {!d.estado_general ? <Empty message="Haz tu primer check-in y aquí verás cómo van tu ánimo, tu energía y tu sueño." /> : (
               <div className="space-y-3 text-sm">
                 <p className="text-xs text-muted-foreground">Últimos {d.estado_general.dias} días · {d.estado_general.checkins} check-ins</p>
@@ -148,14 +168,11 @@ export default function Inicio() {
                 {d.estado_general.habitos_hoy[1] > 0 && <p className="text-xs text-muted-foreground">Hábitos de hoy: {d.estado_general.habitos_hoy[0]} de {d.estado_general.habitos_hoy[1]}</p>}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </Plegable>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="size-4 text-primary" />Insights de {asistente()}</CardTitle></CardHeader>
-          <CardContent>
+        <Plegable titulo={`Insights de ${asistente()}`} icono={<Sparkles className="size-4 text-primary" />} resumen={d.insights.length ? `${d.insights.length} ${d.insights.length === 1 ? "nota" : "notas"}` : undefined}>
             {d.insights.length === 0 && <Empty message="Nada destacable ahora mismo." />}
             <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
               {d.insights.map((i) => (
@@ -166,25 +183,20 @@ export default function Inicio() {
                 </Link>
               ))}
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2"><Target className="size-4 text-primary" />Objetivos activos</CardTitle>
-            <SectionLink href="/objetivos/">Ver todos</SectionLink>
-          </CardHeader>
-          <CardContent>
-            {!d.objetivos && <Empty message="Crea tu primer objetivo para verlo aquí." />}
-            <ul className="space-y-2 text-sm">
-              {d.objetivos?.map((g) => (
-                <li key={g.id}>
-                  <div className="flex justify-between gap-2"><span className="truncate">{g.titulo}</span><span className="text-xs text-muted-foreground tabular-nums">{g.progreso == null ? "Sin hitos" : `${g.progreso} %`}</span></div>
-                  {g.progreso != null && <div className="mt-1 h-1.5 rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${g.progreso}%` }} /></div>}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        </Plegable>
+        {visible(inst, "/objetivos/") && (
+          <Plegable titulo="Objetivos activos" icono={<Target className="size-4 text-primary" />} resumen={d.objetivos ? `${d.objetivos.length} ${d.objetivos.length === 1 ? "activo" : "activos"}` : undefined} extra={<SectionLink href="/objetivos/">Ver todos</SectionLink>}>
+              {!d.objetivos && <Empty message="Crea tu primer objetivo para verlo aquí." />}
+              <ul className="space-y-2 text-sm">
+                {d.objetivos?.map((g) => (
+                  <li key={g.id}>
+                    <div className="flex justify-between gap-2"><span className="truncate">{g.titulo}</span><span className="text-xs text-muted-foreground tabular-nums">{g.progreso == null ? "Sin hitos" : `${g.progreso} %`}</span></div>
+                    {g.progreso != null && <div className="mt-1 h-1.5 rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${g.progreso}%` }} /></div>}
+                  </li>
+                ))}
+              </ul>
+          </Plegable>
+        )}
       </div>
     </div>
   );

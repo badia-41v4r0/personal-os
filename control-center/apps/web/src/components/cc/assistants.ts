@@ -1,4 +1,4 @@
-import { BriefcaseBusiness, CalendarDays, CheckSquare, Dumbbell, Heart, Landmark, Lightbulb, Plane, Search, Target, TrendingUp, type LucideIcon } from "lucide-react";
+import { BriefcaseBusiness, CalendarDays, CheckSquare, Dumbbell, Heart, Landmark, Lightbulb, Plane, Popcorn, Search, Target, TrendingUp, type LucideIcon } from "lucide-react";
 import { asistente } from "@/lib/asistente";
 
 export type Quick = { label: string; icon: LucideIcon; text: string };
@@ -19,8 +19,8 @@ const organizacion = a("agenda", "Organización", "Agenda y tareas", [
   { label: "Planificar mi semana", icon: CalendarDays, text: "Ayúdame a planificar esta semana." },
 ]);
 const SECTIONS: [string, Assistant][] = [
-  ["/agenda", organizacion], ["/tasks", organizacion],
-  ["/gym", a("coach", "Coach", "Entrenador del gimnasio", [
+  ["/agenda", organizacion], ["/tareas", organizacion],
+  ["/entrenamiento", a("coach", "Coach", "Entrenador del gimnasio", [
     { label: "Qué toca hoy", icon: Dumbbell, text: "¿Qué entrenamiento me toca hoy y con qué pesos?" },
     { label: "Analizar mi progreso", icon: TrendingUp, text: "Analiza mi progreso de las últimas semanas." },
   ])],
@@ -36,8 +36,11 @@ const SECTIONS: [string, Assistant][] = [
   ])],
   ["/objetivos", a("objetivos", "Objetivos", "Objetivos y hábitos", [{ label: "Definir un objetivo", icon: Target, text: "Ayúdame a definir un objetivo con hitos medibles." }])],
   ["/estilo-de-vida", a("estilo", "Estilo de vida", "Viajes, compras e intereses", [{ label: "Planificar un viaje", icon: Plane, text: "Ayúdame a planificar un viaje." }])],
-  ["/memory/hechos", a("conocimiento", "Conocimiento", "Tu vault y tu memoria", [{ label: "Qué sabes de mí", icon: Lightbulb, text: "Resume lo que sabes de mí y lo que falta por confirmar." }])],
-  ["/memory", a("conocimiento", "Conocimiento", "Tu vault y tu memoria", [{ label: "Qué tengo más trabajado", icon: Search, text: "¿Qué temas tengo más trabajados en mis notas? Cita de qué nota sale cada uno." }])],
+  ["/ocio", a("ocio", "Ocio", "Pelis y series", [
+    { label: "Qué veo esta noche", icon: Popcorn, text: "Con lo que tengo pendiente y lo que me ha gustado, ¿qué veo esta noche? Dime por qué." },
+  ])],
+  ["/conocimiento/sobre-ti", a("conocimiento", "Conocimiento", "Tu vault y tu memoria", [{ label: "Qué sabes de mí", icon: Lightbulb, text: "Resume lo que sabes de mí y lo que falta por confirmar." }])],
+  ["/conocimiento", a("conocimiento", "Conocimiento", "Tu vault y tu memoria", [{ label: "Qué tengo más trabajado", icon: Search, text: "¿Qué temas tengo más trabajados en mis notas? Cita de qué nota sale cada uno." }])],
 ];
 
 export function assistantFor(path: string): Assistant {

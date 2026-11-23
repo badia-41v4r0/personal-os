@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
-# Personal OS: instalar, comprobar, actualizar y desinstalar una instancia en este PC (Linux con systemd).
+# Personal OS: todo lo que se hace desde la terminal, en un solo comando (Linux con systemd).
 #
 #   bin/pos instalar [--instancia NOMBRE] [--puerto N] [--usuario NOMBRE] [--sin-ordenadores] [--simular]
 #     (sin --usuario: el panel arranca con admin / admin y obliga a cambiarlos en el primer inicio de sesión)
-#   bin/pos comprobar          requisitos, servicios y salud del panel
+#   bin/pos abrir              abre el panel en el navegador
+#   bin/pos estado             servicios y salud del panel
+#   bin/pos comprobar          requisitos, servicios, permisos y disco
+#   bin/pos logs [panel|hostagent|UNIDAD] [-f]   registro de un servicio (por defecto, el panel)
+#   bin/pos contraseña [USUARIO]                 cambiar la contraseña del panel (si la olvidaste)
+#   bin/pos postgres           pasar de SQLite a PostgreSQL (búsqueda semántica)
+#   bin/pos voz                arrancar Whisper para la voz y los vídeos
 #   bin/pos actualizar         recompila y reinicia (no toca tus datos)
 #   bin/pos desinstalar [--borrar-datos]
-#   bin/pos estado
+#
+# El resto de scripts de bin/ los usa el sistema (servicios, contenedores): no hace falta llamarlos a mano.
 #
 # Varias instancias pueden convivir en el mismo PC: cada una tiene su nombre (POS_INSTANCE), sus puertos, sus
 # contenedores, sus servicios y su carpeta. Nunca abre puertos fuera de 127.0.0.1 ni toca configuración del sistema:
@@ -83,7 +90,8 @@ comprobar_requisitos() {
 render_unidades() {  # instancia, puerto, zona → ~/.config/systemd/user/<instancia>-*
   local inst="$1" port="$2" tz="$3" destino="$4"
   mkdir -p "$destino"
-  for f in "$ROOT"/systemd/*.in; do
+  for f in "$ROOT"/systemd/*.in "$ROOT"/systemd/privado/*.in; do  # privado/: unidades de extensiones locales, si hay
+    [ -e "$f" ] || continue
     local nombre; nombre="$(basename "$f" .in)"
     sed -e "s#@ROOT@#$ROOT#g" -e "s#@INST@#$inst#g" -e "s#@PORT@#$port#g" -e "s#@TZ@#$tz#g" "$f" > "$destino/$inst-$nombre"
   done
@@ -181,6 +189,8 @@ Para usarlo desde el móvil (opcional, con Tailscale, solo dentro de tu red priv
   tailscale serve --bg --https=$port http://127.0.0.1:$port
 y añade la dirección https://<tu-equipo>.<tu-tailnet>.ts.net:$port a CC_ALLOWED_ORIGINS en data/control-center/secrets.env,
 con CC_COOKIE_SECURE=1. Después: bin/pos actualizar
+
+Más órdenes: bin/pos ayuda
 EOF
 }
 
@@ -214,8 +224,12 @@ comprobar() {
 
 actualizar() {
   local inst port tz; inst="$(instancia_actual)"; port="$(leer_env "$ROOT/.env" POS_PORT)"; tz="$(leer_env "$ROOT/.env" POS_TZ)"
-  "$ROOT/control-center/deployment/backup.py" >/dev/null 2>&1 && ok "Copia de la base antes de actualizar" || aviso "No pude hacer la copia previa"
+  (set -a && . "$ROOT/data/control-center/secrets.env" && set +a && POS_INSTANCE="$inst" POS_TZ="$tz" \
+    "$CC/backend/.venv/bin/python" "$CC/deployment/backup.py") >/dev/null 2>&1 && ok "Copia de la base antes de actualizar" \
+    || aviso "No pude hacer la copia previa (sigo: la copia nocturna está en data/control-center/backups/)"
   (cd "$CC/backend" && uv sync --frozen)
+  (cd "$CC/backend" && set -a && . "$ROOT/data/control-center/secrets.env" && set +a && .venv/bin/alembic upgrade head) && ok "Base de datos al día" \
+    || muere "No se pudo actualizar la base de datos: no reinicio nada (la copia previa está en data/control-center/backups/)"
   (cd "$CC/apps/web" && npm ci --no-fund --no-audit && npm run build)
   docker build -t "$inst:local" --build-arg "TZ=$tz" "$ROOT"
   render_unidades "$inst" "$port" "$tz" "$UNITS"
@@ -243,11 +257,51 @@ desinstalar() {
   fi
 }
 
+abrir() {
+  local port; instancia_actual >/dev/null; port="$(leer_env "$ROOT/.env" POS_PORT)"
+  local url="http://127.0.0.1:$port"
+  if command -v xdg-open >/dev/null; then xdg-open "$url" >/dev/null 2>&1 & ok "Abriendo $url"
+  else echo "$url"; fi
+}
+
+logs() {
+  local inst unidad="panel" seguir=""; inst="$(instancia_actual)"
+  for a in "$@"; do case "$a" in -f|--seguir) seguir="-f" ;; *) unidad="$a" ;; esac; done
+  case "$unidad" in
+    panel|backend) unidad="$inst-cc-backend.service" ;;
+    hostagent|host-agent) unidad="$inst-cc-hostagent.service" ;;
+    "$inst"-*) ;;
+    *) unidad="$inst-$unidad.service" ;;
+  esac
+  journalctl --user -u "$unidad" -n 100 --no-pager $seguir
+}
+
+contrasena() {
+  instancia_actual >/dev/null
+  local usuario="${1:-}" SEC="$ROOT/data/control-center/secrets.env"
+  [ -n "$usuario" ] || read -r -p "Usuario del panel: " usuario
+  [ -n "$usuario" ] || muere "Falta el usuario"
+  (cd "$CC/backend" && set -a && . "$SEC" && set +a && .venv/bin/python -m app.cli set-password "$usuario")
+}
+
+voz() {
+  instancia_actual >/dev/null
+  (cd "$ROOT" && docker compose up -d jarvis) && ok "Whisper en marcha (contenedor $(instancia_actual))"
+}
+
+ayuda() { sed -n '2,/^# El resto de scripts/p' "$0" | sed 's/^# \{0,1\}//'; }
+
 case "${1:-}" in
   instalar) shift; instalar "$@" ;;
+  abrir) abrir ;;
+  estado) estado ;;
   comprobar|doctor) comprobar ;;
+  logs|registro) shift; logs "$@" ;;
+  contraseña|contrasena|password) shift; contrasena "$@" ;;
+  postgres) "$CC/deployment/pasar-a-postgres.sh" ;;
+  voz) voz ;;
   actualizar) actualizar ;;
   desinstalar) shift; desinstalar "$@" ;;
-  estado) estado ;;
-  *) sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  ayuda|-h|--help) ayuda ;;
+  *) ayuda; exit 1 ;;
 esac

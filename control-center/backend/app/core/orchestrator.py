@@ -29,9 +29,9 @@ class Specialist:
 
 
 COMMON_TOOLS = ("memory.search", "memory.facts", "memory.context", "tasks.list", "agenda.days", "uni.deadlines", "gym.summary")
-JARVIS_TOOLS = COMMON_TOOLS + ("mail.recent", "mail.read")
+JARVIS_TOOLS = COMMON_TOOLS + ("mail.recent", "mail.read", "ocio.list", "ocio.search")
 JARVIS_CAPS = ("memory.fact.propose", "task.create", "task.done", "task.reschedule", "uni.check", "note.add", "gym.register", "gym.pause.log", "health.log", "career.application.create",
-               "calendar.create", "calendar.move", "calendar.delete", "mail.draft",
+               "calendar.create", "calendar.move", "calendar.delete", "mail.draft", "ocio.add", "ocio.update",
                "day.close", "encargo.create", "ayudante.create", "repo.create", "video.analyze")
 # Lo básico sobre el usuario vale en todos los apartados. Lo demás de cada apartado es solo suyo: lo que no está aquí, no lo puede ni leer.
 _PERFIL = ("memory.facts",)
@@ -73,6 +73,7 @@ SECTIONS: dict[str, Specialist] = {
     "objetivos": Specialist("objetivos", "standard", _PERFIL + ("goals.list", "habits.list"),
                             _RECUERDO + ("goal.create", "goal.milestone", "goal.milestone.toggle", "goal.status", "habit.create", "habit.toggle"), (), sensitive=True, section=True),
     "estilo": Specialist("estilo", "standard", _PERFIL + ("lifestyle.list",), _RECUERDO + ("lifestyle.add", "lifestyle.remove"), (), sensitive=True, section=True),
+    "ocio": Specialist("ocio", "standard", _PERFIL + ("ocio.list", "ocio.search"), _RECUERDO + ("ocio.add", "ocio.update"), (), sensitive=True, section=True),
     # Su contenido es justo la vault y la memoria: es el único apartado que las ve enteras
     "conocimiento": Specialist("conocimiento", "standard", ("memory.search", "memory.facts", "memory.context"), _RECUERDO + ("note.add",), (),
                                sensitive=True, vault=True, section=True),

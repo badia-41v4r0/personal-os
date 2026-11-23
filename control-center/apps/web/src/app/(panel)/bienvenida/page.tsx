@@ -51,7 +51,7 @@ export default function Bienvenida() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="Bienvenido al Personal OS" description="Tres pasos y listo. Todo se puede cambiar después en Configuración." />
+      <PageHeader title="Bienvenido al Personal OS" description="Tres pasos y listo. Todo se puede cambiar después en Ajustes." />
       <ol className="mb-6 flex flex-wrap gap-2 text-sm" aria-label="Pasos">
         {PASOS.map((p, i) => (
           <li key={p} aria-current={i === paso ? "step" : undefined}
@@ -70,7 +70,7 @@ export default function Bienvenida() {
               <Input id="b-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" autoFocus /></label>
             <label className="block space-y-1" htmlFor="b-asis"><span className="font-medium">¿Y cómo quieres llamar a tu asistente?</span>
               <Input id="b-asis" value={nombreAsis} maxLength={40} onChange={(e) => setAsis(e.target.value)} placeholder="Jarvis" />
-              <span className="block text-xs text-muted-foreground">Es el nombre con el que te hablará y aparecerá en el panel. Puedes cambiarlo cuando quieras en Configuración.</span></label>
+              <span className="block text-xs text-muted-foreground">Es el nombre con el que te hablará y aparecerá en el panel. Puedes cambiarlo cuando quieras en Ajustes.</span></label>
             <div className="space-y-2">
               <p className="font-medium">Áreas de tu vida (agrupan tus tareas)</p>
               <div className="flex flex-wrap gap-2">
@@ -122,7 +122,7 @@ export default function Bienvenida() {
           <CardHeader><CardTitle>¡Listo!</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>En Inicio está {asistente()}, que lo ve todo. Cada apartado tiene su propio asistente y, la primera vez que lo abras, te ofrecerá configurarlo contigo.</p>
-            <p className="text-muted-foreground">Cuentas como Google, GitHub o Telegram se conectan en Configuración cuando las necesites.</p>
+            <p className="text-muted-foreground">Cuentas como Google, GitHub o Telegram se conectan en Ajustes → Conexiones cuando las necesites.</p>
             <div className="flex justify-end">
               <Button disabled={busy} onClick={() => guardar(async () => {
                 await api("/instancia/config/onboarding", { method: "PUT", body: JSON.stringify({ hecho: true, apartados: { ...inst.onboarding.apartados, inicio: "hecho", sistema: "hecho" } }) });

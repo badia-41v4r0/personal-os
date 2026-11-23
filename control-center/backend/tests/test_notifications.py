@@ -97,7 +97,7 @@ def test_prueba_entrega_y_queda_en_bandeja(client, auth, enviados):
     sub(client, auth)
     r = client.post("/api/v1/push/test", headers=auth)
     assert r.json()["pushed"] == 1
-    assert enviados[0]["data"]["url"] == "/avisos/" and enviados[0]["headers"]["Urgency"] == "high"
+    assert enviados[0]["data"]["url"] == "/bandeja/" and enviados[0]["headers"]["Urgency"] == "high"
     bandeja = client.get("/api/v1/notifications").json()
     assert bandeja[0]["pushed"] == 1 and client.get("/api/v1/notifications/count").json()["unread"] == 1
     assert client.get("/api/v1/push/config").json()["subscriptions"][0]["last_ok_at"]
@@ -149,15 +149,15 @@ def test_horas_de_silencio(h, m, quiet):
 def test_spool_convierte_y_limpia(client, auth, settings, enviados):
     d = settings.data_dir / "avisos"
     d.mkdir(parents=True)
-    (d / "1.json").write_text(json.dumps({"text": "Título\nDetalle", "level": "critical", "url": "/monitor/"}))
+    (d / "1.json").write_text(json.dumps({"text": "Título\nDetalle", "level": "critical", "url": "/ajustes/monitor/"}))
     (d / "2.json").write_text("no es json")
     (d / "3.json").write_text(json.dumps({"text": "externa", "url": "https://evil.example/"}))
     (d / ".tmp.abc").write_text("a medias")
     assert asyncio.run(n.ingest_spool()) == 2
     assert sorted(p.name for p in d.iterdir()) == [".tmp.abc"]
     rows = {x["title"]: x for x in client.get("/api/v1/notifications").json()}
-    assert rows["Título"]["level"] == "critical" and rows["Título"]["body"] == "Detalle" and rows["Título"]["url"] == "/monitor/"
-    assert rows["externa"]["url"] == "/avisos/"
+    assert rows["Título"]["level"] == "critical" and rows["Título"]["body"] == "Detalle" and rows["Título"]["url"] == "/ajustes/monitor/"
+    assert rows["externa"]["url"] == "/bandeja/"
 
 
 def test_prueba_diaria_una_vez_al_dia_y_solo_la_primera_semana(client, auth, enviados):

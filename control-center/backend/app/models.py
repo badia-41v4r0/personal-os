@@ -441,7 +441,7 @@ class Notification(Base):
     level: Mapped[str] = mapped_column(String(12), default="info")  # critical | action | info | silent
     title: Mapped[str] = mapped_column(String(160))
     body: Mapped[str] = mapped_column(Text, default="")
-    url: Mapped[str] = mapped_column(String(255), default="/avisos/")
+    url: Mapped[str] = mapped_column(String(255), default="/bandeja/")
     source: Mapped[str] = mapped_column(String(48), default="sistema", index=True)
     read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
     pushed: Mapped[int] = mapped_column(Integer, default=0)  # dispositivos que lo aceptaron
@@ -765,6 +765,37 @@ class LifestyleItem(Base):
     day: Mapped[str | None] = mapped_column(String(10), nullable=True, index=True)  # fecha clave: salida, compra, vencimiento
     note: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class MediaItem(Base):
+    """Pelis y series (Ocio). Los datos de TMDB se copian al añadir: si TMDB cambia o falla, lo tuyo sigue igual."""
+    __tablename__ = "media_items"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    kind: Mapped[str] = mapped_column(String(10), index=True)  # pelicula | serie
+    tmdb_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    title: Mapped[str] = mapped_column(String(300))
+    original_title: Mapped[str] = mapped_column(String(300), default="")
+    year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    overview: Mapped[str] = mapped_column(Text, default="")
+    genres: Mapped[str] = mapped_column(Text, default="[]")  # JSON
+    runtime: Mapped[int | None] = mapped_column(Integer, nullable=True)  # minutos (peli o capítulo)
+    seasons: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    episodes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    show_status: Mapped[str] = mapped_column(String(40), default="")  # en emisión, finalizada…
+    poster: Mapped[str] = mapped_column(String(80), default="")  # ruta de TMDB («/abc.jpg»); la imagen se guarda en el PC
+    tmdb_rating: Mapped[float | None] = mapped_column(Float, nullable=True)
+    providers: Mapped[str] = mapped_column(Text, default="[]")  # JSON: dónde verla en España (suscripción)
+    season_episodes: Mapped[str] = mapped_column(Text, default="[]")  # JSON: capítulos por temporada [10, 8, …]
+    status: Mapped[str] = mapped_column(String(12), default="pendiente", index=True)  # pendiente | viendo | vista | abandonada
+    rating: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 1–10
+    season: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    episode: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    started_on: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    finished_on: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    __table_args__ = (UniqueConstraint("kind", "tmdb_id"),)
 
 
 class Task(Base):

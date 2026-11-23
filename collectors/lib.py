@@ -1,11 +1,12 @@
 """Utilidades comunes de los recopiladores (sin IA, solo librería estándar)."""
 import json
+import os
 import re
 from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-VAULT = ROOT / "Jarvis-Vault"
+VAULT = Path(os.environ["CC_VAULT"]) if os.environ.get("CC_VAULT") else ROOT / "Jarvis-Vault"  # las pruebas la cambian
 if not VAULT.exists() and Path("/vault/Jarvis").exists():  # dentro del contenedor de Jarvis
     VAULT = Path("/vault")
 JARVIS = VAULT / "Jarvis"

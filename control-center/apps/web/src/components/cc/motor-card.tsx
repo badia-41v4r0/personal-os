@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ErrorState, Loading } from "@/components/cc/states";
 import { api, post } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
+import { CredencialForm } from "./credencial";
 
 type Prov = { id: string; nombre: string; conectado: boolean; mcp: boolean; subagentes: boolean; web: boolean; contenedor: boolean };
 type Config = { proveedor: string; relevo: boolean; modelos: Record<string, Record<string, string>>; limite_mensual_usd: number };
@@ -16,7 +17,7 @@ type Estado = { config: Config; elegido: string; gasto_mes_openrouter: number; l
 
 const PERFILES: [string, string][] = [["fast", "Rápido"], ["standard", "Normal"], ["deep", "A fondo"], ["code", "Código"]];
 const AYUDA: Record<string, string> = {
-  claude: "Tu suscripción de Claude (Pro o Max). El token se configura en la instalación (claude setup-token).",
+  claude: "Tu suscripción de Claude (Pro o Max). Pega el token de «claude setup-token».",
   codex: "Tu cuenta de ChatGPT. Ejecuta «codex login» en el PC y pulsa Conectar.",
   opencode: "Pago por uso con tu clave de OpenRouter. Pon un límite de gasto mensual.",
   antigravity: "Solo responde con texto (sin herramientas ni tus datos). Usa la sesión de Antigravity del PC.",
@@ -88,6 +89,12 @@ export function MotorCard({ onListo }: { onListo?: () => void }) {
             <label className="flex items-center justify-between gap-3 text-xs" htmlFor="or-lim">Límite de gasto al mes (USD) · llevas {e.data.gasto_mes_openrouter.toFixed(2)} $
               <Input id="or-lim" type="number" min={0} step={1} className="w-24" value={c.limite_mensual_usd} onChange={(x) => setCfg({ ...c, limite_mensual_usd: Number(x.target.value) })} />
             </label>
+          </div>
+        )}
+        {c.proveedor === "claude" && (
+          <div className="space-y-2 rounded-lg border border-border p-3">
+            <CredencialForm clave="CLAUDE_CODE_OAUTH_TOKEN" etiqueta="Token de Claude" placeholder="sk-ant-…" puesta={!!elegido?.conectado} onGuardada={() => void e.reload()} />
+            <p className="text-xs text-muted-foreground">En el PC, ejecuta <code>claude setup-token</code>, inicia sesión y pega aquí lo que te da. Se guarda en el <code>.env</code> del PC (solo lo puede leer tu usuario), no en la base ni en el navegador, y nunca se vuelve a mostrar.</p>
           </div>
         )}
         {c.proveedor === "codex" && (

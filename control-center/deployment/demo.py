@@ -4,7 +4,7 @@
   cd control-center/backend && set -a && . ../../data/control-center/secrets.env && set +a && .venv/bin/python ../deployment/demo.py
 
 Va por las mismas acciones que usan el panel y los agentes (como usuario «demo»), así que todo queda auditado y se
-puede deshacer desde Tareas → Aprobaciones. Si ya hay tareas en la base, no hace nada.
+puede deshacer desde la Bandeja. Si ya hay tareas en la base, no hace nada.
 """
 import sys
 from datetime import date, timedelta

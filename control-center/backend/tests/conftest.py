@@ -1,7 +1,11 @@
 import json
 import os
+import tempfile
 
 os.environ["CC_MONITOR"] = "0"  # el muestreo real no corre en las pruebas
+# Ninguna prueba puede tocar la vault real, aunque se ejecuten en la carpeta de una instalación en uso: los
+# recopiladores (collectors/lib.py) y el backend leen CC_VAULT, que aquí apunta a una carpeta temporal antes de importar nada.
+os.environ["CC_VAULT"] = tempfile.mkdtemp(prefix="pos-pruebas-vault-")
 from pathlib import Path
 
 import pytest
@@ -40,6 +44,21 @@ def config_instancia(tmp_path: Path, monkeypatch):
     from app.core import modules
     (d / "modulos.json").write_text(json.dumps({"activos": list(modules.MODULES)}))
     return d
+
+
+@pytest.fixture(autouse=True)
+def _sin_vault_real(tmp_path: Path, monkeypatch):
+    """Además, las rutas de collectors/tareas.py van a la carpeta temporal de cada prueba (16/11: una prueba reescribió
+    el Tareas.md real de una instalación en uso). Una prueba que necesite otra ruta la cambia con monkeypatch."""
+    import sys
+    if str(config.ROOT / "collectors") not in sys.path:
+        sys.path.insert(0, str(config.ROOT / "collectors"))
+    import tareas
+    j = tmp_path / "vault" / "Jarvis"
+    for k, sub in (("TAREAS", "Tareas.md"), ("PANEL", "Panel.md"), ("HECHOS", "Sistema/hechos.json"), ("PANEL_ESTADO", "Sistema/panel-estado.json")):
+        monkeypatch.setattr(tareas, k, j / sub)
+    from app import agenda
+    monkeypatch.setattr(agenda, "_visto", None, raising=False)
 
 
 @pytest.fixture()

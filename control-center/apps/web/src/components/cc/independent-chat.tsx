@@ -172,7 +172,7 @@ export function IndependentChat({ session, onChanged }: { session: SessionSummar
             {session.agent_id && <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Agente</dt><dd>{session.agent_id}</dd></div>}
             <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Subagentes</dt><dd>{session.permissions?.subagents ? "sí" : "no"}</dd></div>
             <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Ordenador virtual</dt><dd>
-              {!p?.vc?.enabled ? "ninguno" : p.vc.vc_id ? <a href={`/virtual-computers/?v=${p.vc.vc_id}`} className="text-primary hover:underline">{p.vc.profile} · ver</a> : `a petición (${p.vc.profile})`}
+              {!p?.vc?.enabled ? "ninguno" : p.vc.vc_id ? <a href={`/ajustes/ordenadores/?v=${p.vc.vc_id}`} className="text-primary hover:underline">{p.vc.profile} · ver</a> : `a petición (${p.vc.profile})`}
             </dd></div>
           </dl>
           {p?.system_prompt && <details className="mt-2 text-xs"><summary className="cursor-pointer text-muted-foreground">Instrucciones</summary><p className="mt-1 whitespace-pre-wrap">{p.system_prompt}</p></details>}

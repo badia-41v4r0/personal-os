@@ -91,7 +91,7 @@ def _revoked(db: Session, agent: str, capability: str) -> bool:
 
 
 def _notify(a_id: str, summary: str) -> None:
-    n = notifications.crear("action", f"{asistente()} pide tu aprobación", summary, "/tasks/?t=approvals", "acciones")
+    n = notifications.crear("action", f"{asistente()} pide tu aprobación", summary, "/bandeja/", "acciones")
     threading.Thread(target=notifications._entregar, args=(n,), daemon=True).start()
 
 

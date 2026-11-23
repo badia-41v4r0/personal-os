@@ -28,7 +28,7 @@ test("gym: pausa creada, visible en la lista y en el calendario, y borrada", asy
   // Lunes a miércoles de esta semana
   const ini = lunes(new Date());
   const desde = iso(ini), hasta = iso(add(ini, 2));
-  await page.goto("/gym/?tab=recovery");
+  await page.goto("/entrenamiento/?tab=recovery");
   await expect(page.getByText("Periodos sin entrenar", { exact: true })).toBeVisible();
   await expect(page.getByText("Sin pausas registradas.")).toBeVisible();
 
@@ -43,7 +43,7 @@ test("gym: pausa creada, visible en la lista y en el calendario, y borrada", asy
   await expect(page.getByRole("button", { name: `Borrar la pausa del ${desde}` })).toBeVisible();
 
   // El calendario de Routines marca esos días como pausa (no «perdido»)
-  await page.goto("/gym/?tab=routines");
+  await page.goto("/entrenamiento/?tab=routines");
   await expect(page.getByText("Calendario", { exact: true })).toBeVisible();
   const dias = await page.evaluate(async ([d, h]) => {
     const r = await fetch(`/api/v1/gym/calendar?desde=${d}&hasta=${h}`, { credentials: "same-origin" });
@@ -57,7 +57,7 @@ test("gym: pausa creada, visible en la lista y en el calendario, y borrada", asy
   expect(await page.getByText("pausa", { exact: true }).count()).toBeGreaterThanOrEqual(previstos.length);
 
   // Terminar (si no tuviera fin) no aplica: tiene fin. Borrar
-  await page.goto("/gym/?tab=recovery");
+  await page.goto("/entrenamiento/?tab=recovery");
   await page.getByRole("button", { name: `Borrar la pausa del ${desde}` }).click();
   await expect(page.getByText("Pausa borrada.")).toBeVisible();
   await expect(page.getByText("Sin pausas registradas.")).toBeVisible();

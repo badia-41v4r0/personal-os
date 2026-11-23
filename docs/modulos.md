@@ -38,7 +38,9 @@ alguien los pida, el orquestador no elige su asistente y su temporizador se apag
 
 En `app/core/orchestrator.py`, añade a `SECTIONS` un `Specialist("plantas", "standard", lecturas, acciones, (), section=True)`
 y sus instrucciones en `control-center/agents/plantas.md` (usa `{{nombre}}` para el nombre del usuario). En la web,
-añade el asistente en `apps/web/src/components/cc/assistants.ts` y el apartado en `nav.ts`.
+añade el asistente en `apps/web/src/components/cc/assistants.ts` y el apartado en `nav.ts` (`NAV_GROUPS`, grupo «Tus áreas»).
+Las rutas del panel van en español (`/plantas/`); si renombras una, añade la antigua a `backend/app/rutas_viejas.py` y
+`apps/web/src/lib/rutas.ts` para que los enlaces viejos sigan funcionando.
 
 ## 5. Configuración y onboarding
 

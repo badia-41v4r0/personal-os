@@ -37,7 +37,7 @@ def warn(text: str) -> None:
     try:
         d = get_settings().data_dir / "avisos"
         d.mkdir(mode=0o700, parents=True, exist_ok=True)
-        (d / f"{time.time_ns()}-copia.json").write_text(json.dumps({"text": text, "level": "action", "url": "/avisos/"}, ensure_ascii=False), encoding="utf-8")
+        (d / f"{time.time_ns()}-copia.json").write_text(json.dumps({"text": text, "level": "action", "url": "/bandeja/"}, ensure_ascii=False), encoding="utf-8")
     except OSError as e:
         log.warning("aviso no guardado: %s", e)
 

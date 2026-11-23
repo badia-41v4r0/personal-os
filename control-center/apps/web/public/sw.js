@@ -12,7 +12,7 @@ self.addEventListener("push", (e) => {
       body: d.body || "",
       icon: "/icons/icon-192.png",
       tag: d.id ? `aviso-${d.id}` : undefined,
-      data: { url: d.url || "/avisos/" },
+      data: { url: d.url || "/bandeja/" },
     }),
   );
 });
@@ -20,7 +20,7 @@ self.addEventListener("push", (e) => {
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
   // Solo rutas del propio panel
-  const url = new URL(e.notification.data?.url || "/avisos/", self.location.origin);
+  const url = new URL(e.notification.data?.url || "/bandeja/", self.location.origin);
   const target = url.origin === self.location.origin ? url.href : `${self.location.origin}/avisos/`;
   e.waitUntil(
     (async () => {

@@ -113,12 +113,12 @@ def construir(hoy: date, con_github: bool = True):
         edad = max((datetime.now().timestamp() - t.stat().st_mtime) / 86400
                    for t in (gcal.TOKEN, gcal.TOKEN_2) if t.exists())
         if edad >= 6:  # app de Google en modo Prueba: el permiso caduca a los 7 días
-            avisos.append("Un permiso de Google caduca en menos de 1 día: renuévalo en Configuración → Permisos de Google.")
+            avisos.append("Un permiso de Google caduca en menos de 1 día: renuévalo en Ajustes → Conexiones.")
     except LookupError:
         pass
     except Exception as e:
         if type(e).__name__ == "Caducado":
-            avisos.append("El permiso de Google (calendario y Gmail) ha caducado: renuévalo en Configuración → Permisos de Google.")
+            avisos.append("El permiso de Google (calendario y Gmail) ha caducado: renuévalo en Ajustes → Conexiones.")
         else:  # corte de red u otro fallo puntual: el permiso sigue bien
             avisos.append(f"Google Calendar no respondió esta mañana ni tras 4 intentos ({str(e)[:80]}). "
                           "Suele ser un corte de red; el permiso está bien. Mira tu calendario directamente.")

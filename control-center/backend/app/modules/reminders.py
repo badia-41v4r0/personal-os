@@ -29,8 +29,8 @@ def google_pending(cuentas: list[dict], today: date) -> list[dict]:
             caducada = not c.get("autorizada") or c.get("caducada") or (dr is not None and dr <= 0)
             out.append({"key": f"rec:google:{c['cuenta']}:{today.isoformat()}",
                         "title": "El permiso de Google ha caducado" if caducada else "El permiso de Google caduca pronto",
-                        "body": f"{c.get('email', c['cuenta'])}: renuévalo en Configuración (dos toques).",
-                        "url": "/settings/", "level": "action"})
+                        "body": f"{c.get('email', c['cuenta'])}: renuévalo en Ajustes → Conexiones (dos toques).",
+                        "url": "/ajustes/", "level": "action"})
     return out
 
 

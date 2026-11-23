@@ -1,4 +1,4 @@
-"""Tasks & Approvals: integra lo que ya existe, sin un sistema paralelo.
+"""Aprobaciones, colas y solicitudes (Bandeja y Ajustes → Colas): integra lo que ya existe, sin un sistema paralelo.
 
 - Propuestas de skills y subagentes de Jarvis: las valida e instala `bin/aprobar` (a través del Host Agent).
   Aprobar envía la huella del contenido que se ha visto: si Jarvis cambia el borrador entretanto, no se instala.
@@ -58,7 +58,7 @@ async def approvals(db: Session = Depends(get_db)):
         pend, error = [], str(e.detail)
     for p in pend:
         p["impacto"] = _impact(p)
-        p["solicitado_por"] = "Jarvis"
+        p["solicitado_por"] = asistente()
     hist = [{"id": a.id, "kind": a.kind, "ref": a.ref, "requested_by": a.requested_by, "action": a.action,
              "impact": a.impact, "status": a.status, "decided_by": a.decided_by,
              "decided_at": a.decided_at.isoformat() + "Z" if a.decided_at else None, "result": a.result}
@@ -83,7 +83,7 @@ class RejectIn(BaseModel):
 
 
 def _record(db: Session, name: str, action: str, impact: str, status: str, actor: str, result: str) -> None:
-    db.add(Approval(kind="propuesta", ref=name, requested_by="Jarvis", action=action, impact=impact, status=status,
+    db.add(Approval(kind="propuesta", ref=name, requested_by=asistente(), action=action, impact=impact, status=status,
                     decided_by=actor, decided_at=utcnow(), result=result[:4000]))
 
 

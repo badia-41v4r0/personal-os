@@ -34,7 +34,7 @@ TZ = ZoneInfo(TZ_NAME)
 NS = uuid.UUID("6f2f3f2e-0d3e-4b49-9d1e-7a3b6c1a5e10")
 AGENT_FILES = {"jarvis": "control-center/agents/jarvis.md", "finanzas": "control-center/agents/finanzas.md",
                "memoria": "control-center/agents/memoria.md", "agenda": "control-center/agents/agenda.md", "salud": "control-center/agents/salud.md",
-               "objetivos": "control-center/agents/objetivos.md", "estilo": "control-center/agents/estilo.md", "conocimiento": "control-center/agents/conocimiento.md",
+               "objetivos": "control-center/agents/objetivos.md", "estilo": "control-center/agents/estilo.md", "ocio": "control-center/agents/ocio.md", "conocimiento": "control-center/agents/conocimiento.md",
                "entrenador": "agent/.claude/agents/entrenador.md", "carrera": "control-center/agents/carrera.md", "rutina": "control-center/agents/rutina.md", "tutor": "control-center/agents/tutor.md"}
 SECCION = " (apartado)"
 SILENCIO = "SILENCIO"
@@ -80,8 +80,10 @@ def _panel_agent(db, name: str):
 
 
 def _body(name: str) -> str:
+    from .. import extensiones
     text = (ROOT / AGENT_FILES[name]).read_text(encoding="utf-8")
-    return ajustes.render(re.sub(r"\A---\n.*?\n---\n", "", text, flags=re.S).strip())
+    extra = "".join(f"\n\n{t}" for t in extensiones.INSTRUCCIONES.get(name, []))
+    return ajustes.render(re.sub(r"\A---\n.*?\n---\n", "", text, flags=re.S).strip() + extra)
 
 
 def _day(now: datetime | None = None) -> str:
@@ -204,7 +206,7 @@ async def _execute(sid: str, run_id: str, text: str, notify: bool, route: model_
         _write_voice(voz, result or "No he podido responder.")
     if notify:
         titulo = f"{asistente()} ha terminado" if status == "done" else f"Una tarea de {asistente()} ha fallado"
-        await notifications.enviar("info" if status == "done" else "action", titulo, result[:1000], "/chat/", "jarvis")
+        await notifications.enviar("info" if status == "done" else "action", titulo, result[:1000], "/conversaciones/", "jarvis")
 
 
 def submit(text: str, actor: str, *, notify: bool = False, specialist: orchestrator.Specialist | None = None, voz: str = "", rutina: str = "") -> dict:

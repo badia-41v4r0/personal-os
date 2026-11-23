@@ -42,6 +42,7 @@ import re
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -68,6 +69,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TOKEN = os.environ.get("CC_HOSTAGENT_TOKEN", "")
 DATA = Path(os.environ.get("CC_DATA_DIR", str(ROOT / "data/control-center")))
 AUDIT = DATA / "hostagent-audit.jsonl"
+ENV_FILE = Path(os.environ.get("POS_ENV_FILE", str(ROOT / ".env")))  # credenciales del .env (permisos 600)
 
 UNIT_RE = re.compile(rf"^{re.escape(INST)}-[a-z0-9-]{{1,40}}\.(service|timer|path)$")
 # Unidades de fuera de la instancia que el panel también vigila (lista vacía por defecto)
@@ -705,7 +707,7 @@ def start_egress(sid: str, prov: str, d: Path) -> str:
 def _prov_estado(prov: str) -> dict:
     cap = proveedores.CAPACIDADES[prov]
     if prov == "claude":
-        conectado = bool(sesiones.read_token(ROOT)) if (ROOT / ".env").exists() else False
+        conectado = bool(_env_leer().get("CLAUDE_CODE_OAUTH_TOKEN"))
     elif prov == "codex":
         conectado = _prov_file("codex-auth.json").exists()
     elif prov == "opencode":
@@ -760,6 +762,80 @@ def proveedores_codex_importar(request: Request):
     f.chmod(0o600)
     _audit(request, "proveedores.codex.importar", "ok")
     return _prov_estado("codex")
+
+
+# ---------- credenciales del .env que se ponen desde el panel (Ajustes) ----------
+# Solo estas claves, con su formato. El valor nunca se devuelve ni se registra: el panel solo ve si está puesto.
+ENV_PERMITIDAS = {
+    "CLAUDE_CODE_OAUTH_TOKEN": re.compile(r"sk-ant-[A-Za-z0-9_-]{20,300}"),
+    "TELEGRAM_BOT_TOKEN": re.compile(r"\d{5,15}:[A-Za-z0-9_-]{30,60}"),
+    "TELEGRAM_CHAT_ID": re.compile(r"-?\d{1,20}"),
+}
+ENV_AYUDA = {
+    "CLAUDE_CODE_OAUTH_TOKEN": "Eso no parece un token de Claude: sale de «claude setup-token» y empieza por sk-ant-",
+    "TELEGRAM_BOT_TOKEN": "Eso no parece el token de un bot (número:letras, te lo da @BotFather)",
+    "TELEGRAM_CHAT_ID": "El chat id es un número (puede empezar por -)",
+}
+
+
+def _env_leer() -> dict[str, str]:
+    if not ENV_FILE.exists():
+        return {}
+    out = {}
+    for line in ENV_FILE.read_text().splitlines():
+        if "=" in line and not line.lstrip().startswith("#"):
+            k, v = line.split("=", 1)
+            out[k.strip()] = v.strip()
+    return out
+
+
+def _env_poner(clave: str, valor: str) -> None:
+    """Cambia o añade CLAVE=valor sin tocar el resto del .env. Escritura atómica y con permisos 600."""
+    lineas = ENV_FILE.read_text().splitlines() if ENV_FILE.exists() else []
+    nueva = f"{clave}={valor}"
+    for i, line in enumerate(lineas):
+        if line.split("=", 1)[0].strip() == clave:
+            lineas[i] = nueva
+            break
+    else:
+        lineas.append(nueva)
+    tmp = ENV_FILE.with_name(ENV_FILE.name + ".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write("\n".join(lineas) + "\n")
+    os.chmod(tmp, 0o600)
+    tmp.replace(ENV_FILE)
+
+
+@app.get("/v1/credenciales", dependencies=[Depends(auth)])
+def credenciales_estado():
+    """Qué credenciales del .env están puestas (nunca su valor)."""
+    env = _env_leer()
+    return {k: bool(env.get(k)) for k in ENV_PERMITIDAS}
+
+
+@app.put("/v1/credenciales/{clave}", dependencies=[Depends(auth)])
+def credenciales_poner(request: Request, clave: str, valor: str = Body(..., embed=True)):
+    if clave not in ENV_PERMITIDAS:
+        _audit(request, "credenciales.poner", "denied", clave=clave[:40])
+        raise HTTPException(404, "Esa credencial no se puede cambiar desde el panel")
+    valor = valor.strip()
+    if not ENV_PERMITIDAS[clave].fullmatch(valor):
+        _audit(request, "credenciales.poner", "denied", clave=clave)
+        raise HTTPException(422, ENV_AYUDA[clave])
+    _env_poner(clave, valor)
+    _audit(request, "credenciales.poner", "ok", clave=clave)  # nunca el valor
+    return credenciales_estado()
+
+
+@app.delete("/v1/credenciales/{clave}", dependencies=[Depends(auth)])
+def credenciales_quitar(request: Request, clave: str):
+    if clave not in ENV_PERMITIDAS:
+        raise HTTPException(404, "Esa credencial no se puede cambiar desde el panel")
+    if clave in _env_leer():
+        _env_poner(clave, "")
+    _audit(request, "credenciales.quitar", "ok", clave=clave)
+    return credenciales_estado()
 
 
 # ---------- pasarela agente ↔ su ordenador virtual ----------
@@ -1665,6 +1741,16 @@ def timer_run(request: Request, name: str):
 @app.exception_handler(Exception)
 def _err(_, exc: Exception):
     return JSONResponse({"detail": "error interno del host agent"}, status_code=500)
+
+
+# ---------- extensiones locales (host-agent/privado/, no se publica) ----------
+# Si existe el paquete privado/, su registrar() añade rutas y temporizadores propios de esta instalación.
+try:
+    import privado as _privado
+except ImportError:
+    _privado = None
+if _privado is not None:
+    _privado.registrar(sys.modules[__name__])
 
 
 def main() -> None:

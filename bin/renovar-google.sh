@@ -26,7 +26,7 @@ for cuenta in personal secundaria; do
   [ -f "$t" ] || continue
   edad=$(( ($(date +%s) - $(stat -c %Y "$t")) / 86400 ))
   [ "$edad" -ge 6 ] || { echo "$cuenta: token de $edad días, no toca"; continue; }
-  JARVIS_NIVEL=action JARVIS_URL=/settings/ bin/telegram-send.sh "🔑 Toca renovar el permiso de Google de ${NOMBRES[$cuenta]}. Te he abierto una pestaña en el navegador del PC (pulsa «Continuar») o, si no estás en casa, renuévalo desde Configuración del panel. Te espero hasta 12 h; si no, lo repito mañana." || true
+  JARVIS_NIVEL=action JARVIS_URL=/ajustes/conexiones/ bin/telegram-send.sh "🔑 Toca renovar el permiso de Google de ${NOMBRES[$cuenta]}. Te he abierto una pestaña en el navegador del PC (pulsa «Continuar») o, si no estás en casa, renuévalo desde Ajustes → Conexiones en el panel. Te espero hasta 12 h; si no, lo repito mañana." || true
   if python3 collectors/gcal.py auth --cuenta "$cuenta" --abrir --espera 12 >/dev/null; then
     bin/telegram-send.sh "✅ Permiso de ${NOMBRES[$cuenta]} renovado para 7 días más." || true
     renovado=1

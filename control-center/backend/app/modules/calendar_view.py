@@ -67,7 +67,7 @@ def _google_crudo(desde: date, dias: int) -> dict:
         return {"eventos": gcal.agenda(dias, hoy=desde), "error": None}
     except Exception as e:  # noqa: BLE001
         caducado = e.__class__.__name__ == "Caducado" or "invalid_grant" in str(e)
-        return {"eventos": [], "error": "El permiso de Google ha caducado: renuévalo en Configuración"
+        return {"eventos": [], "error": "El permiso de Google ha caducado: renuévalo en Ajustes → Conexiones"
                 if caducado else f"Google Calendar no disponible: {str(e)[:120]}"}
 
 
@@ -91,7 +91,7 @@ def uni(db: Session, d: str, h: str) -> list[dict]:
 
 def tareas(db: Session, d: str, h: str) -> list[dict]:
     q = select(Task).where(Task.removed_at.is_(None), Task.due >= d, Task.due <= h)
-    return [_item("tareas", str(t.id), t.text, t.due, hecho=t.done, enlace="/tasks/?t=tasks", detalle=t.area) for t in db.scalars(q)]
+    return [_item("tareas", str(t.id), t.text, t.due, hecho=t.done, enlace="/tareas/", detalle=t.area) for t in db.scalars(q)]
 
 
 def trabajo(db: Session, d: str, h: str) -> list[dict]:
@@ -104,7 +104,7 @@ def trabajo(db: Session, d: str, h: str) -> list[dict]:
 def gym(db: Session, d: str, h: str) -> list[dict]:
     q = select(GymPlannedSession).where(GymPlannedSession.date >= d, GymPlannedSession.date <= h,
                                         GymPlannedSession.status.not_in(GYM_OCULTAS))
-    return [_item("gym", s.id, f"🏋️ {s.name}", s.date, enlace="/gym/", hecho=s.status == "hecha",
+    return [_item("gym", s.id, f"🏋️ {s.name}", s.date, enlace="/entrenamiento/", hecho=s.status == "hecha",
                   detalle="Pospuesta" if s.status == "pospuesta" else "Sesión planificada") for s in db.scalars(q)]
 
 

@@ -34,7 +34,7 @@ queda en tu máquina.
   bloqueo tras varios fallos.
 - El **Host Agent** es la única pieza que toca el sistema (systemd, Docker): por socket Unix con token, con una lista
   cerrada de capacidades y todo auditado. El backend nunca es root ni toca Docker directamente.
-- **Auditoría encadenada:** cada registro lleva la huella del anterior; Configuración comprueba que nadie la ha
+- **Auditoría encadenada:** cada registro lleva la huella del anterior; Ajustes → Autonomía comprueba que nadie la ha
   alterado.
 
 ## Secretos
@@ -42,6 +42,11 @@ queda en tu máquina.
 `.env`, `data/control-center/secrets.env`, `secrets/` y las credenciales de los motores (`data/control-center/proveedores/`)
 tienen permisos 600 y están fuera de git. Ninguno se monta en los contenedores de los agentes, salvo la credencial del
 motor durante su turno.
+
+Las credenciales que se ponen desde el panel (token de Claude, clave de OpenRouter, bot de Telegram) las escribe solo el
+Host Agent, y solo una lista cerrada de claves con su formato (`host-agent/hostagent.py → ENV_PERMITIDAS`). El backend las
+reenvía sin guardarlas, el navegador no las vuelve a ver (solo si están puestas) y la auditoría apunta qué se cambió, nunca
+el valor.
 
 ## Si encuentras un fallo
 

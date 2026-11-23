@@ -32,6 +32,8 @@ class Settings:
     embed_model: str = field(default_factory=lambda: _env("CC_EMBED_MODEL", ""))
     # Consolidación de memoria cada noche. Gasta modelo: apagada salvo que se active
     consolidate: bool = field(default_factory=lambda: _env("CC_MEMORY_CONSOLIDATE", "0") == "1")
+    # Token de lectura de TMDB (Ocio: carátulas e información de pelis y series). Vacío = solo a mano
+    tmdb_token: str = field(default_factory=lambda: _env("CC_TMDB_TOKEN", ""))
     vault: Path = field(default_factory=lambda: Path(_env("CC_VAULT", str(ROOT / "Jarvis-Vault"))))
     # Transcripciones de la sesión principal de Jarvis (solo lectura)
     jarvis_projects: Path = field(
@@ -46,6 +48,7 @@ class Settings:
         "CC_HOSTAGENT_SOCKET", f"{os.environ.get('XDG_RUNTIME_DIR', '/tmp')}/{INSTANCE}-cc/hostagent.sock")))
     hostagent_token: str = field(default_factory=lambda: _env("CC_HOSTAGENT_TOKEN", ""))
     # Orígenes admitidos (CSRF de peticiones con efecto y WebSocket). Separados por comas.
+    # `https://host:*` admite ese host en cualquier puerto.
     allowed_origins: tuple[str, ...] = field(default_factory=lambda: tuple(
         o.strip().rstrip("/") for o in _env("CC_ALLOWED_ORIGINS", "http://127.0.0.1:3770,http://localhost:3770").split(",")
         if o.strip()))

@@ -5,14 +5,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from .adapters import hostagent
 from .config import ROOT
 from .security import COOKIE, actor_name
 
-from . import claude_usage, events, main_session, model_usage, monitor, sessions, vcs
+from . import claude_usage, events, extensiones, main_session, model_usage, monitor, rutas_viejas, sessions, vcs
 from .api.routes import router
 from .core import actions, assistants, gateway, memory, notifications
 from .modules import agent_caps  # noqa: F401  (registra capacidades y lecturas)
@@ -24,6 +24,7 @@ from .modules import education as education_module
 from .modules import calendar_view as calendar_module
 from .modules import applications as applications_module
 from .modules import personal as personal_module
+from .modules import ocio as ocio_module
 from .gym import router as gym_router
 from .gym_plan import router as gym_plan_router
 from .vault import router as vault_router
@@ -88,9 +89,21 @@ app.include_router(home_module.router)
 app.include_router(checkin_module.router)
 app.include_router(finance_module.router)
 app.include_router(personal_module.router)
+app.include_router(ocio_module.router)
 app.include_router(education_module.router)
 app.include_router(calendar_module.router)
 app.include_router(applications_module.router)
+extensiones.cargar(app)  # módulos propios de esta instalación (app/privado/, no se publica)
+
+
+@app.middleware("http")
+async def rutas_antiguas(request: Request, call_next):
+    """Las direcciones antiguas del panel (/gym/, /tasks/?t=approvals…) llevan a las nuevas."""
+    if request.method in ("GET", "HEAD") and not request.url.path.startswith(("/api/", "/_next/")):
+        destino = rutas_viejas.nueva(request.url.path, request.url.query)
+        if destino:
+            return RedirectResponse(destino, status_code=308)
+    return await call_next(request)
 
 
 @app.middleware("http")

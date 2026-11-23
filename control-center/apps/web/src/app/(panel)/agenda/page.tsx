@@ -65,7 +65,7 @@ export default function AgendaPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2"><ListChecks className="size-4" /> Tareas de hoy</CardTitle>
-                <Link href="/tasks/?t=tasks" className="-my-1 py-1 text-xs text-primary hover:underline">Todas</Link>
+                <Link href="/tareas/" className="-my-1 py-1 text-xs text-primary hover:underline">Todas</Link>
               </CardHeader>
               <CardContent>
                 {!a.data.tareas.hoy?.length && <p className="text-sm text-muted-foreground">Nada para hoy.</p>}
@@ -100,14 +100,14 @@ export default function AgendaPage() {
             <Card>
               <CardHeader><CardTitle className="flex items-center gap-2"><Newspaper className="size-4" /> Resúmenes</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
-                <Link href={`/memory/?p=${encodeURIComponent(a.data.digest.path)}`} className="-my-1 flex items-center gap-2 py-1 hover:text-primary"><BookOpen className="size-3.5" /> Digest de hoy</Link>
+                <Link href={`/conocimiento/?p=${encodeURIComponent(a.data.digest.path)}`} className="-my-1 flex items-center gap-2 py-1 hover:text-primary"><BookOpen className="size-3.5" /> Digest de hoy</Link>
                 {[["Briefings", a.data.briefings], ["Diario", a.data.diario]].map(([t, list]) => (
                   <div key={t as string}>
                     <div className="mb-1 text-xs text-muted-foreground">{t as string}</div>
                     {(list as { path: string; name: string }[]).length === 0 && <p className="text-xs text-muted-foreground">Ninguno</p>}
                     <ul className="space-y-0.5">
                       {(list as { path: string; name: string }[]).map((x) => (
-                        <li key={x.path}><Link href={`/memory/?p=${encodeURIComponent(x.path)}`} className="inline-block py-1 text-xs hover:text-primary">{x.name}</Link></li>
+                        <li key={x.path}><Link href={`/conocimiento/?p=${encodeURIComponent(x.path)}`} className="inline-block py-1 text-xs hover:text-primary">{x.name}</Link></li>
                       ))}
                     </ul>
                   </div>

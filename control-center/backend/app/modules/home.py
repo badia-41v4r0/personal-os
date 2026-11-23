@@ -144,32 +144,54 @@ async def home(db: Session = Depends(get_db)):
     }
 
 
+# (id, nombre, para qué, cómo se sabe si está conectada, módulos que la usan, qué hacer para conectarla)
+# Cómo se sabe: «secrets:archivo» (solo se mira que exista, nunca se lee), «env:CLAVE» (el Host Agent dice si está
+# puesta, nunca su valor) o «manual:texto» (no se puede comprobar desde aquí).
 INTEGRACIONES = (
-    ("Google Calendar", "Agenda", "secrets:token"),
-    ("Gmail", "Correo: leer y borradores", "secrets:token"),
-    ("Zoho Mail", "Correo: leer y borradores", "secrets:zoho.json"),
-    ("GitHub", "Repos, PRs e issues", "manual:Con el gh del PC"),
-    ("Campus de estudios", "Lectura desde su ordenador virtual", "manual:Sesión en el ordenador del campus"),
-    ("Hevy", "Entrenos", "manual:Por importación: sin API, requiere Pro"),
-    ("Telegram", "Solo alertas de emergencia", "manual:Mientras dure la transición, también chat"),
-    ("Obsidian", "Conocimiento, sincronizado con Syncthing", "manual:Vault local"),
+    ("google", "Google Calendar", "Agenda", "secrets:token", ("agenda",), "Autoriza tu cuenta de Google aquí mismo, más abajo."),
+    ("gmail", "Gmail", "Correo: leer y borradores", "secrets:token", ("correo",), "Usa el mismo permiso de Google."),
+    ("zoho", "Zoho Mail", "Correo: leer y borradores", "secrets:zoho.json", ("correo",), "En el PC: python3 collectors/correo.py auth-zoho"),
+    ("github", "GitHub", "Repos, PRs e issues", "manual:Con el gh del PC", ("proyectos",), "En el PC: gh auth login"),
+    ("campus", "Campus de estudios", "El tutor lee tu campus desde su ordenador virtual", "manual:Sesión en el ordenador del campus",
+     ("educacion",), "Abre el ordenador «Campus» e inicia sesión tú una vez."),
+    ("hevy", "Hevy", "Entrenos", "manual:Por importación: sin API, requiere Pro", ("gym",), "Importa el CSV en Entrenamiento → Historial."),
+    ("telegram", "Telegram", "Copia de las alertas críticas (solo salida)", "env:TELEGRAM_BOT_TOKEN", ("telegram",),
+     "Crea un bot con @BotFather y pon aquí su token y tu chat id."),
+    ("tmdb", "TMDB", "Ocio: carátulas e información de pelis y series", "ajuste:tmdb_token", ("ocio",),
+     "Opcional. Crea un token de lectura en themoviedb.org y ponlo como CC_TMDB_TOKEN en data/control-center/secrets.env; después, bin/pos actualizar."),
+    ("obsidian", "Obsidian", "Tu vault, sincronizada con Syncthing si quieres", "manual:Vault local", ("conocimiento",),
+     "Abre la carpeta de la vault con Obsidian."),
 )
 
 
 @router.get("/integraciones")
-def integraciones(db: Session = Depends(get_db)):
+async def integraciones(db: Session = Depends(get_db)):
+    """Estado de cada conexión de los módulos activos. Nunca lee el contenido de un secreto."""
+    from ..adapters import hostagent
+    from ..core import modules
     from ..models import PushSubscription
     secretos = get_settings().root / "secrets"
     nombres = {p.name for p in secretos.iterdir()} if secretos.is_dir() else set()
+    activos = modules.activos()
+    try:
+        env = await hostagent.call("/v1/credenciales")
+    except Exception:  # noqa: BLE001
+        env = {}
     out = []
-    for nombre, uso, regla in INTEGRACIONES:
+    for iid, nombre, uso, regla, mods, como in INTEGRACIONES:
         tipo, valor = regla.split(":", 1)
         if tipo == "secrets":
-            ok = any(valor in n for n in nombres)  # solo el nombre del archivo: nunca se lee su contenido
-            out.append({"nombre": nombre, "uso": uso, "estado": "conectada" if ok else "sin_conectar", "detalle": ""})
+            estado, detalle = ("conectada" if any(valor in n for n in nombres) else "sin_conectar"), ""
+        elif tipo == "ajuste":  # lo tiene el propio backend (secrets.env): solo se mira si está puesto
+            estado, detalle = ("conectada" if getattr(get_settings(), valor, "") else "sin_conectar"), ""
+        elif tipo == "env":
+            estado, detalle = ("conectada" if env.get(valor) else "sin_conectar"), ""
         else:
-            out.append({"nombre": nombre, "uso": uso, "estado": "manual", "detalle": valor})
+            estado, detalle = "manual", valor
+        out.append({"id": iid, "nombre": nombre, "uso": uso, "estado": estado, "detalle": detalle, "como": como,
+                    "modulos": list(mods), "activa": any(m in activos for m in mods)})
     subs = db.scalar(select(func.count()).select_from(PushSubscription))
-    out.append({"nombre": "Avisos push", "uso": "Notificaciones en tus dispositivos", "estado": "conectada" if subs else "sin_conectar",
-                "detalle": f"{subs} {'dispositivo' if subs == 1 else 'dispositivos'}"})
+    out.append({"id": "push", "nombre": "Avisos push", "uso": "Notificaciones en tus dispositivos", "estado": "conectada" if subs else "sin_conectar",
+                "detalle": f"{subs} {'dispositivo' if subs == 1 else 'dispositivos'}", "como": "Actívalos en cada dispositivo, más abajo.",
+                "modulos": [], "activa": True})
     return out

@@ -53,7 +53,7 @@ test("bienvenida, módulos y primera vez en un apartado", async ({ page }, info)
   await expect(menu.getByRole("link", { name: "Finanzas" })).toBeVisible();
   await expect(menu.getByRole("link", { name: "Entrenamiento" })).toHaveCount(0);
   // Apartado apagado: no se ve aunque se entre por la URL
-  await page.goto("/gym/");
+  await page.goto("/entrenamiento/");
   await expect(page.getByRole("heading", { name: /Entrenamiento está desactivado/ })).toBeVisible();
   // Primera vez en Finanzas: tarjeta del asistente; «Ahora no» la quita y no vuelve
   await page.goto("/finanzas/");
@@ -66,8 +66,8 @@ test("bienvenida, módulos y primera vez en un apartado", async ({ page }, info)
   await expect(page.getByText("Primera vez en Finanzas")).toHaveCount(0);
   await page.reload();
   await expect(page.getByText("Primera vez en Finanzas")).toHaveCount(0);
-  // Configuración → Módulos: volver a activar Entrenamiento
-  await page.goto("/settings/modulos/");
+  // Ajustes → Módulos: volver a activar Entrenamiento
+  await page.goto("/ajustes/modulos/");
   await page.getByLabel("Activar Entrenamiento").click();
   await expect(menu.getByRole("link", { name: "Entrenamiento" })).toBeVisible();
 });
