@@ -15,7 +15,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import IntegrityError
 
 from .. import agents, events, model_usage, sessions
@@ -99,9 +99,10 @@ def section_session_id(spec: orchestrator.Specialist, day: str) -> str:
     return session_id(f"{spec.name}{SECCION if spec.section else ''}", day)
 
 
-def _session(db, spec: orchestrator.Specialist, day: str, text: str) -> ChatSession:
+def _session(db, spec: orchestrator.Specialist, day: str, text: str, sid: str | None = None, nombre: str = "", kind: str = "runtime") -> ChatSession:
+    """La conversación del día del especialista o, con `sid`, una conversación concreta (las del chat del panel)."""
     etiqueta = f"{spec.name}{SECCION if spec.section else ''}"
-    sid = section_session_id(spec, day)
+    sid = sid or section_session_id(spec, day)
     s = db.get(ChatSession, sid)
     usage = model_usage.latest()
     from . import proveedores as motor
@@ -129,7 +130,7 @@ def _session(db, spec: orchestrator.Specialist, day: str, text: str) -> ChatSess
             model, base = ("sonnet" if panel.model == "inherit" else panel.model), agents.system_prompt(panel)
             perms |= {"level": panel.level, "internet": panel.internet, "vault": panel.vault, "subagents": panel.subagents, "vault_paths": list(spec.vault_paths),
                       "vc": {"enabled": panel.virtual_computer, "profile": "canvas", "vc_id": None}}
-        s = ChatSession(id=sid, kind="runtime", name=f"{etiqueta} · {day}", agent_id=agent_id, workdir=f"data/sesiones/{sid}/trabajo", model=model, permissions=perms)
+        s = ChatSession(id=sid, kind=kind, name=nombre or f"{etiqueta} · {day}", agent_id=agent_id, workdir=f"data/sesiones/{sid}/trabajo", model=model, permissions=perms)
         db.add(s)
     elif spec.panel_agent:
         model = s.model
@@ -209,21 +210,24 @@ async def _execute(sid: str, run_id: str, text: str, notify: bool, route: model_
         await notifications.enviar("info" if status == "done" else "action", titulo, result[:1000], "/conversaciones/", "jarvis")
 
 
-def submit(text: str, actor: str, *, notify: bool = False, specialist: orchestrator.Specialist | None = None, voz: str = "", rutina: str = "") -> dict:
+def submit(text: str, actor: str, *, notify: bool = False, specialist: orchestrator.Specialist | None = None, voz: str = "", rutina: str = "",
+           sid: str | None = None, contenido: str | None = None) -> dict:
+    """`sid`: conversación concreta (ya creada). `contenido`: lo que se guarda como mensaje del usuario, si no es el texto."""
     spec = specialist or orchestrator.pick(text)
     run_id = str(uuid.uuid4())
+    fija = sid
     try:
         with session_scope() as db:
-            s, route = _session(db, spec, _day(), text)
+            s, route = _session(db, spec, _day(), text, sid=fija)
             sid = s.id
     except IntegrityError:
         # Dos mensajes a la vez crearon la conversación del día: la otra ya existe, se sigue con ella
         with session_scope() as db:
-            s, route = _session(db, spec, _day(), text)
+            s, route = _session(db, spec, _day(), text, sid=fija)
             sid = s.id
     with session_scope() as db:
         db.add(AgentRun(id=run_id, session_id=sid, agent_id=None, channel="web", status="queued"))
-        db.add(Message(session_id=sid, role="user", channel="web", content=text, run_id=run_id))
+        db.add(Message(session_id=sid, role="user", channel="web", content=contenido or text, run_id=run_id))
         events.audit(db, actor, "chat.runtime.send", target=run_id, especialista=spec.name, chars=len(text))
         events.publish("run.queued", {"run_id": run_id, "session_id": sid}, db=db)
 
@@ -331,16 +335,20 @@ def order_routine(nombre: str, text: str) -> None:
 def conversation_of_day(day: str, max_chars: int = 15000) -> str:
     """Solo lo dicho en la conversación: lo que dijo el usuario y lo que respondió Jarvis."""
     with session_scope() as db:
+        # Las conversaciones del chat no van por días: entra lo que se dijo en ellas ese día
+        ini = datetime.fromisoformat(day).replace(tzinfo=TZ).astimezone(timezone.utc).replace(tzinfo=None)
+        del_dia = and_(ChatSession.kind == "runtime", ChatSession.name.like(f"%{day}"), ChatSession.name.not_like("rutina ·%"))
+        chat = and_(ChatSession.kind == "conversacion", Message.created_at >= ini, Message.created_at < ini + timedelta(days=1))
         q = (select(Message).join(ChatSession, ChatSession.id == Message.session_id)
-             .where(ChatSession.kind == "runtime", ChatSession.name.like(f"%{day}"), ChatSession.name.not_like("rutina ·%"), Message.role.in_(("user", "assistant"))).order_by(Message.id))
+             .where(or_(del_dia, chat), Message.role.in_(("user", "assistant"))).order_by(Message.id))
         text = "\n".join(f"{'Usuario' if m.role == 'user' else 'Jarvis'}: {m.content}" for m in db.scalars(q))
     return text[-max_chars:]
 
 
-def ensure(spec: orchestrator.Specialist) -> str:
-    """Crea la conversación de hoy de un especialista, para poder dejarle archivos antes del primer mensaje."""
+def ensure(spec: orchestrator.Specialist, sid: str | None = None, nombre: str = "", kind: str = "runtime") -> str:
+    """Crea la conversación de hoy de un especialista (o una concreta), para poder dejarle archivos antes del primer mensaje."""
     with session_scope() as db:
-        return _session(db, spec, _day(), "")[0].id
+        return _session(db, spec, _day(), "", sid=sid, nombre=nombre, kind=kind)[0].id
 
 
 def consolidate(day: str | None = None) -> dict | None:

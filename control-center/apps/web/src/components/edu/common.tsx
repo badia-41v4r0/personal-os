@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { cn } from "cn";
-import { post } from "@/lib/api";
+import { preguntarAlChat } from "@/components/cc/chat/chat-flotante";
 
 export type Siguiente = { texto: string; fecha: string; hora: string; dias: number };
 export type Asig = {
@@ -62,8 +62,7 @@ export function Bar({ value, max, tone = "primary", label }: { value: number; ma
   );
 }
 
-/** Le manda un mensaje al tutor y abre su chat. El mensaje lo contesta de verdad: nada se simula aquí. */
+/** Le manda un mensaje al tutor en una conversación nueva y abre el chat. Lo contesta de verdad: nada se simula aquí. */
 export async function preguntarTutor(texto: string): Promise<void> {
-  await post("/assistants/tutor/messages", { text: texto });
-  window.dispatchEvent(new Event("cc:open-dock"));
+  preguntarAlChat("tutor", texto);
 }

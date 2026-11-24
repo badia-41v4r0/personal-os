@@ -79,7 +79,6 @@ export const AJUSTES: NavItem[] = AJUSTES_GROUPS.flatMap((g) => g.items);
 export const NAV_MOBILE: NavItem[] = [
   { href: "/", label: "Inicio", icon: HomeIcon },
   { href: "/agenda/", label: "Agenda", icon: CalendarDays },
-  { href: "/conversaciones/", label: "Asistente", icon: MessagesSquare },  // abre el asistente del apartado (shell)
   { href: "/bandeja/", label: "Bandeja", icon: Inbox },
 ];
 

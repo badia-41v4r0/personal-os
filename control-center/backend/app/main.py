@@ -31,6 +31,7 @@ from .vault import router as vault_router
 from .agenda import router as agenda_router
 from .monitor import router as monitor_router
 from .sessions import router as sessions_router
+from .conversaciones import router as conversaciones_router
 from .agents import router as agents_router
 from .vcs import router as vcs_router
 from .approvals import router as approvals_router
@@ -74,6 +75,7 @@ app.include_router(vault_router)
 app.include_router(agenda_router)
 app.include_router(monitor_router)
 app.include_router(sessions_router)
+app.include_router(conversaciones_router)
 app.include_router(agents_router)
 app.include_router(vcs_router)
 app.include_router(approvals_router)

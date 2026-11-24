@@ -68,7 +68,7 @@ class ChatSession(Base):
     """Conversación. kind=main es la sesión compartida con Telegram (tmux 'jarvis')."""
     __tablename__ = "chat_sessions"
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    kind: Mapped[str] = mapped_column(String(16))  # main | independent | runtime
+    kind: Mapped[str] = mapped_column(String(16))  # main | independent | runtime | conversacion (chat del panel)
     name: Mapped[str] = mapped_column(String(120))
     description: Mapped[str] = mapped_column(Text, default="")
     agent_id: Mapped[str | None] = mapped_column(ForeignKey("agent_definitions.id"), nullable=True)

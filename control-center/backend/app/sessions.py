@@ -79,9 +79,9 @@ def create(body: CreateIn, p: Principal = Depends(require_admin), db: Session = 
     return _sess(create_session(db, body, p.name))
 
 
-def _get(db: Session, sid: str) -> ChatSession:
+def _get(db: Session, sid: str, kinds: tuple[str, ...] = ("independent",)) -> ChatSession:
     s = db.get(ChatSession, sid)
-    if s is None or s.kind != "independent":
+    if s is None or s.kind not in kinds:
         raise HTTPException(404, "Sesión no encontrada")
     return s
 
@@ -142,6 +142,15 @@ async def send(sid: str, body: SendIn, p: Principal = Depends(require_admin), db
     _tasks.add(t)
     t.add_done_callback(_tasks.discard)
     return {"run_id": run_id, "status": "queued"}
+
+
+def _etiqueta(inp: dict) -> str:
+    """Lo que dice de una herramienta la línea «está haciendo…» del chat: el archivo, la búsqueda o la lectura del Personal OS."""
+    for k in ("file_path", "path", "pattern", "query", "url", "name", "capability", "description", "command"):
+        v = inp.get(k)
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    return ""
 
 
 def _set_run(run_id: str, **f) -> None:
@@ -239,7 +248,7 @@ async def _run(sid: str, run_id: str, text: str) -> None:
                     for c in (ev.get("message") or {}).get("content") or []:
                         if c.get("type") == "tool_use":
                             inp = c.get("input") or {}
-                            label = inp.get("file_path") or inp.get("pattern") or inp.get("query") or inp.get("url") or ""
+                            label = _etiqueta(inp)
                             tools.append(c.get("name", ""))
                             events.broadcast("session.tool", {"session_id": sid, "run_id": run_id,
                                                               "tool": c.get("name"), "input": str(label)[:200]})
@@ -438,9 +447,13 @@ def files(sid: str, path: str = "", db: Session = Depends(get_db)):
 async def upload(sid: str, request: Request, name: str, p: Principal = Depends(require_admin)):
     """Sube un archivo (cuerpo binario, hasta 20 MB): se guarda en la carpeta común del PC (Entrada/hoy) y se
     copia a /trabajo/adjuntos de la conversación. Nunca sobrescribe. Devuelve el nombre para el mensaje."""
+    return await guardar_adjunto(sid, request, name, p.name)
+
+
+async def guardar_adjunto(sid: str, request: Request, name: str, actor: str, kinds: tuple[str, ...] = ("independent",)) -> dict:
     import shutil
     with session_scope() as db:
-        s = _get(db, sid)
+        s = _get(db, sid, kinds)
         if s.status == "archived":
             raise HTTPException(409, "Sesión archivada")
     stored, size = await archivos.store(request, name)
@@ -452,7 +465,7 @@ async def upload(sid: str, request: Request, name: str, p: Principal = Depends(r
     final.chmod(0o600)
     common = stored.relative_to(archivos.root()).as_posix()
     with session_scope() as db:
-        events.audit(db, p.name, "session.upload", target=sid, name=final.name, bytes=size, stored=common)
+        events.audit(db, actor, "session.upload", target=sid, name=final.name, bytes=size, stored=common)
     return {"name": final.name, "path": f"{ATTACH_DIR}/{final.name}", "size": size, "stored": common}
 
 
@@ -474,5 +487,5 @@ def recover() -> None:
         for r in db.scalars(select(AgentRun).where(AgentRun.session_id != "main", AgentRun.status.in_(("queued", "running")))):
             r.status, r.ended_at = "error", utcnow()
             r.error = "El backend se reinició durante la ejecución"
-        for s in db.scalars(select(ChatSession).where(ChatSession.kind.in_(("independent", "runtime")), ChatSession.status == "running")):
+        for s in db.scalars(select(ChatSession).where(ChatSession.kind.in_(("independent", "runtime", "conversacion")), ChatSession.status == "running")):
             s.status = "idle"

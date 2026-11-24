@@ -43,7 +43,7 @@ Todo está en el panel, ordenado así:
 | Dónde | Qué hay |
 |---|---|
 | **Hoy** | **Inicio** (resumen, check-ins y «Te falta por configurar»), **Bandeja** (lo que espera tu aprobación y los avisos), **Agenda** y **Tareas** |
-| **Tus áreas** | Un apartado por módulo activo (Educación, Entrenamiento, Finanzas…), cada uno con su asistente a la derecha |
+| **Tus áreas** | Un apartado por módulo activo (Educación, Entrenamiento, Finanzas…), cada uno con su asistente en el chat flotante de abajo |
 | **Conocimiento** | Tu vault de Obsidian y «Qué sé de ti» |
 | **Ajustes** | Todo lo que se configura o se conecta: cuenta, motor de IA, módulos, conexiones (Google, campus, Telegram, avisos en el móvil), automatizaciones y autonomía. En «Avanzado», agentes, ordenadores virtuales, sistema y auditoría |
 

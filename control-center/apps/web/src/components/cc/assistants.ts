@@ -46,3 +46,14 @@ const SECTIONS: [string, Assistant][] = [
 export function assistantFor(path: string): Assistant {
   return SECTIONS.find(([p]) => path.startsWith(p))?.[1] ?? main;
 }
+
+/** Clave del asistente en las conversaciones del chat (el general es «jarvis»). */
+export const claveChat = (a: Assistant) => a.key ?? "jarvis";
+
+/** Todos los asistentes del chat, sin repetir, con la ruta de su apartado (para saber si su módulo está activo). */
+export const ASISTENTES: { asistente: Assistant; ruta: string }[] = [
+  { asistente: main, ruta: "/" },
+  ...SECTIONS.filter(([, a], i) => SECTIONS.findIndex(([, b]) => b.key === a.key) === i).map(([ruta, asistente]) => ({ asistente, ruta: `${ruta}/` })),
+];
+
+export const asistentePorClave = (k: string): Assistant => ASISTENTES.find((x) => claveChat(x.asistente) === k)?.asistente ?? main;

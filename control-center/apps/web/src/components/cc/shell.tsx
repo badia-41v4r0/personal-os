@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Bell, LogOut, Menu, PanelRightClose, PanelRightOpen, Search } from "lucide-react";
+import { Bell, LogOut, Menu, Search } from "lucide-react";
 import { cn } from "cn";
 import { api, post, setCsrf } from "@/lib/api";
 import { useApi, useEvents, type BusEvent } from "@/lib/hooks";
@@ -14,8 +14,7 @@ import { CuentaForm } from "./cuenta-form";
 import { Button } from "@/components/ui/button";
 import { NAV_AJUSTES, NAV_GROUPS, NAV_MOBILE, enSeccion, isActive, tituloDe, type NavItem } from "./nav";
 import { CommandPalette } from "./command-palette";
-import { assistantFor } from "./assistants";
-import { JarvisDock } from "./jarvis-dock";
+import { ChatFlotante } from "./chat/chat-flotante";
 import { StatusDot } from "./status";
 import { asistente, setAsistente } from "@/lib/asistente";
 
@@ -72,16 +71,7 @@ function Bell_({ unread, decidir }: { unread: number; decidir: number }) {
 export function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const path = usePathname();
-  const [dock, setDock] = useState(true);
-  const [sheet, setSheet] = useState(false);
-  const assistant = assistantFor(path);
   const [search, setSearch] = useState(false);
-  // Otras pantallas piden abrir el chat del apartado (p. ej. «Estudiar ahora» manda un mensaje al tutor)
-  useEffect(() => {
-    const open = () => { setDock(true); setSheet(true); };
-    window.addEventListener("cc:open-dock", open);
-    return () => window.removeEventListener("cc:open-dock", open);
-  }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -125,7 +115,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isChat = path.startsWith("/conversaciones");
+  // El chat flotante está en todas las pantallas salvo la bienvenida y la de sesiones (que tiene su propio cuadro)
+  const chat = !path.startsWith("/conversaciones") && !path.startsWith("/bienvenida");
   const unread = useApi<{ unread: number; por_decidir: number }>(me ? "/notifications/count" : null, 60000);
   const { reload: reloadUnread } = unread;
   useEffect(() => {
@@ -222,23 +213,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <Search className="size-4" /><span className="hidden flex-1 text-left lg:block">Buscar…</span><kbd className="hidden font-mono text-[10px] lg:block">⌘K</kbd>
             </button>
             <Bell_ unread={unread.data?.unread ?? 0} decidir={unread.data?.por_decidir ?? 0} />
-            {!isChat && (
-              <Button variant="ghost" size="icon-sm" className="hidden xl:inline-flex" onClick={() => setDock((d) => !d)} aria-label={dock ? `Ocultar ${assistant.name}` : `Mostrar ${assistant.name}`} aria-pressed={dock}>
-                {dock ? <PanelRightClose /> : <PanelRightOpen />}
-              </Button>
-            )}
           </header>
           <div className="flex min-h-0 flex-1">
-            <main className="mx-auto w-full min-w-0 max-w-[1400px] flex-1 p-4 pb-24 md:p-6 lg:pb-6">
+            <main className={cn("mx-auto w-full min-w-0 max-w-[1400px] flex-1 p-4 md:p-6", chat ? "pb-40 md:pb-40 lg:pb-28" : "pb-24 lg:pb-6")}>
               {visible(inst, path) ? <>{(() => { const m = moduloDe(inst, path); return m && !path.startsWith("/bienvenida") ? <OnboardingBanner key={m.id} modulo={m} /> : null; })()}{children}</> : <ModuloApagado nombre={moduloDe(inst, path)?.nombre ?? ""} />}
             </main>
-            {dock && !isChat && <aside aria-label={assistant.name} className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-80 shrink-0 border-l border-border bg-card xl:block"><JarvisDock key={assistant.base} assistant={assistant} /></aside>}
           </div>
-          {sheet && <div role="dialog" aria-modal="true" aria-label={assistant.name} className="fixed inset-0 z-50 bg-card pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] xl:hidden"><JarvisDock key={assistant.base} assistant={assistant} onClose={() => setSheet(false)} /></div>}
-          <nav aria-label="Accesos rápidos" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-            {NAV_MOBILE.filter((i) => visible(inst, i.href)).map(({ href, label, icon: Icon }) => href === "/conversaciones/" ? (
-              <button key={href} type="button" onClick={() => setSheet(true)} className="relative flex min-h-14 flex-col items-center justify-end pb-2.5 text-[11px] text-muted-foreground"><span className="absolute -top-3 grid size-11 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-md"><Icon className="size-5" /></span>{assistant.key ? assistant.name.split(" ")[0] : asistente()}</button>
-            ) : (
+          {chat && <ChatFlotante />}
+          <nav aria-label="Accesos rápidos" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+            {NAV_MOBILE.filter((i) => visible(inst, i.href)).map(({ href, label, icon: Icon }) => (
               <Link key={href} href={href} aria-current={isActive(href, path) ? "page" : undefined} className={cn("relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground", isActive(href, path) && "text-primary")}>
                 <Icon className="size-5" />{label}
                 {href === "/bandeja/" && (unread.data?.por_decidir ?? 0) > 0 && <span className="absolute top-2 left-1/2 ml-2 size-2 rounded-full bg-primary" aria-label="Hay cosas por decidir" />}

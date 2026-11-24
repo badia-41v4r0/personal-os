@@ -10,9 +10,16 @@ El menú de la izquierda tiene tres bloques y, abajo, Ajustes:
 - **Conocimiento:** tu vault de Obsidian y «Qué sé de ti».
 - **Ajustes:** todo lo que se configura o se conecta, en un solo sitio (ver más abajo).
 
-Cada apartado tiene a la derecha su propio asistente (en el móvil, el botón del centro de la barra de abajo), que solo ve
-el contenido de ese apartado. El de Inicio es tu asistente general: se llama Jarvis salvo que le pongas otro nombre en
-Ajustes → Tú y tu cuenta. Su icono de pantalla completa abre **Conversaciones**, con el historial.
+Abajo de cada pantalla flota la **barra del chat**, con el asistente del apartado en el que estás, que solo ve el
+contenido de ese apartado. El de Inicio es tu asistente general: se llama Jarvis salvo que le pongas otro nombre en
+Ajustes → Tú y tu cuenta. Al escribir (o con la flecha, o `Ctrl+J`) se despliega la ventana del chat:
+- Cada asistente tiene varias **conversaciones**, cada una con su contexto, como en ChatGPT. A la izquierda está su
+  historial, con buscador; se pueden renombrar o quitar del historial. Arriba se cambia de asistente.
+- Mientras trabaja, ves lo que hace en una línea («Leyendo enunciado.md…»). Al terminar queda plegado como «Ha mirado
+  3 cosas · 12 s»: tócalo para ver cada paso. Si pliegas el chat mientras trabaja, la barra te lo sigue contando.
+- `Esc` lo pliega. La conversación sigue donde la dejaste.
+
+Telegram queda para los avisos. Su sesión y las sesiones independientes están en Ajustes → Avanzado → Conversaciones.
 
 `Ctrl+K` (o la lupa) busca apartados, secciones de Ajustes y notas de tu vault.
 

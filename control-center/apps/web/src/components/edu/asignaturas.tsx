@@ -11,7 +11,7 @@ import { Bar, Chip, Semaforo, Stat, cuentaAtras, fecha, preguntarTutor, type Asi
 function Ficha({ a }: { a: Asig }) {
   const act = useAct();
   const [aviso, setAviso] = useState<string | null>(null);
-  const preguntar = (texto: string) => act.run(async () => { await preguntarTutor(texto); setAviso("Enviado al tutor: te contesta en el chat de la derecha."); });
+  const preguntar = (texto: string) => act.run(async () => { await preguntarTutor(texto); setAviso("Enviado al tutor: te contesta en el chat."); });
   const s = a.siguiente;
   return (
     <Card>
