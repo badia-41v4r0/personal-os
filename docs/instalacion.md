@@ -220,6 +220,31 @@ Añade `https://<equipo>.<tailnet>.ts.net:<puerto>` a `CC_ALLOWED_ORIGINS` en `d
 `CC_COOKIE_SECURE=1` y ejecuta `bin/pos actualizar`. En el iPhone, ábrelo en Safari y «Añadir a pantalla de inicio»
 para recibir avisos. Nunca uses Tailscale Funnel ni abras el puerto al router.
 
+## Conectar tu banco (opcional)
+
+Para que los movimientos de tu banco lleguen solos a Finanzas cada día a las 3:00, en solo lectura (el panel nunca puede
+mover dinero). Lo hace [Enable Banking](https://enablebanking.com), open banking europeo (PSD2), gratis para leer tus
+propias cuentas. Vale cualquier banco que Enable Banking tenga en tu país. Unos 10 minutos.
+
+Necesitas:
+- Una cuenta gratuita en Enable Banking.
+- Mejor con el panel en **https** (por ejemplo con Tailscale, sección anterior): el banco te devuelve a una dirección de
+  tu panel. Sin https también funciona: registras `https://localhost:<puerto>/finanzas/banco` y, cuando el navegador
+  vuelva a esa página (que no cargará), pegas su dirección en el asistente.
+
+En el panel, ve a **Finanzas → Importar y ajustes → Banco** y sigue el asistente:
+1. **Crea la aplicación** en Enable Banking, de tipo *Production* (no *Sandbox*). El asistente te da los valores ya
+   rellenos con la dirección de tu panel para copiarlos: nombre, *Allowed redirect URLs*, descripción, privacidad
+   (`/privacidad`) y condiciones (`/condiciones`). En la clave, deja que la genere el navegador: descarga un `.pem`.
+2. **Sube el `.pem` y pega el Application ID.** La clave la guarda el Host Agent en `secrets/<id>.pem` con permisos 600.
+3. **Comprueba la aplicación.** El panel pregunta a Enable Banking y te dice si falta algo. Para activarla, en su panel
+   pulsa «Activate by linking accounts» y da permiso con tu banco.
+4. **Elige tu país y tu banco.**
+5. **Conecta.** Das permiso en tu banco; dura hasta 180 días y el panel te avisa una semana antes de que caduque.
+
+Lo que ya importaste con extractos CSV no se duplica. Las cuentas en otras divisas siguen entrando por CSV. Más detalle
+en la [guía de uso](guia-de-uso.md).
+
 ## Mantenimiento
 
 Todo desde un solo comando, `bin/pos` (`bin/pos ayuda` las enseña todas):

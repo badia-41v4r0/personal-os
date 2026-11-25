@@ -13,6 +13,9 @@ máquina; el modelo de IA solo ve lo que necesita en cada turno.
 - **Módulos que activas y desactivas:** Agenda, Correo, Educación, Entrenamiento, Salud, Finanzas, Carrera, Objetivos,
   Estilo de vida, Conocimiento (tu vault de Obsidian), Proyectos (GitHub), Ayudante, Vídeos, Ordenadores virtuales,
   Voz y avisos por Telegram. Lo desactivado desaparece del panel y ningún agente puede usarlo.
+- **Finanzas conectadas a tu banco (opcional):** los movimientos llegan solos cada noche, en solo lectura, con
+  [Enable Banking](https://enablebanking.com) (gratis para tus propias cuentas; cualquier banco que tenga en tu país).
+  Un asistente en Finanzas te guía para configurarlo. Ver [instalación](docs/instalacion.md#conectar-tu-banco-opcional).
 - **Rutinas:** briefing por la mañana, recordatorio por la noche y revisión semanal.
 - **Elige tu motor de IA:** Claude Code, Codex (ChatGPT), OpenRouter (con OpenCode) o Antigravity.
 - **Onboarding guiado:** la primera vez que abres un apartado, su asistente te ayuda a configurarlo. Nada se guarda
@@ -54,7 +57,7 @@ Paso a paso con Docker, problemas frecuentes, Windows (WSL2), móvil y mantenimi
 
 ## Documentación
 
-- [Instalación](docs/instalacion.md): paso a paso con Docker, problemas frecuentes, Windows (WSL2), móvil con Tailscale, actualizar y desinstalar.
+- [Instalación](docs/instalacion.md): paso a paso con Docker, problemas frecuentes, Windows (WSL2), móvil con Tailscale, conectar tu banco, actualizar y desinstalar.
 - [Guía de uso](docs/guia-de-uso.md): qué hace cada apartado y cómo sacarle partido.
 - [Motores de IA](docs/motores-de-ia.md): qué puede hacer cada uno, cómo conectarlo y qué cuesta.
 - [Seguridad y privacidad](docs/seguridad.md): qué ve cada agente, qué sale de tu PC y qué no.

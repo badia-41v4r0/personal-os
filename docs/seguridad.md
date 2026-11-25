@@ -6,6 +6,8 @@
   un contexto corto (hechos sobre ti y lo de ese apartado). No se le manda tu base de datos ni tu vault entera.
 - **Avisos push** al servicio de Apple o Google, cifrados de extremo a extremo.
 - **Lo que tú conectes:** Google (calendario y correo), GitHub, Telegram, tu campus. Cada uno, solo para lo suyo.
+- **Tu banco, si lo conectas:** el panel pide a Enable Banking tus saldos y movimientos (solo lectura; nunca puede
+  mover dinero). Se guardan en tu base de datos; ningún agente tiene camino para tocar credenciales bancarias.
 
 Todo lo demás (base de datos, vault, archivos, transcripción de voz con Whisper, búsqueda semántica con Ollama) se
 queda en tu máquina.
@@ -44,9 +46,10 @@ tienen permisos 600 y están fuera de git. Ninguno se monta en los contenedores 
 motor durante su turno.
 
 Las credenciales que se ponen desde el panel (token de Claude, clave de OpenRouter, bot de Telegram) las escribe solo el
-Host Agent, y solo una lista cerrada de claves con su formato (`host-agent/hostagent.py → ENV_PERMITIDAS`). El backend las
-reenvía sin guardarlas, el navegador no las vuelve a ver (solo si están puestas) y la auditoría apunta qué se cambió, nunca
-el valor.
+Host Agent, y solo una lista cerrada de claves con su formato (`host-agent/hostagent.py → ENV_PERMITIDAS`). Igual la
+clave `.pem` de Enable Banking: el Host Agent comprueba que es una clave RSA y la guarda en `secrets/<id>.pem`. El
+backend las reenvía sin guardarlas, el navegador no las vuelve a ver (solo si están puestas) y la auditoría apunta qué
+se cambió, nunca el valor.
 
 ## Si encuentras un fallo
 
