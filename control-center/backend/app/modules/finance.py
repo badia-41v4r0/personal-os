@@ -11,7 +11,7 @@ import io
 import re
 import shutil
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -133,6 +133,26 @@ def reconcile(db: Session) -> list[dict]:
     return out
 
 
+def declare(db: Session, account_id: int, as_of: str, amount: Decimal, currency: str = "EUR") -> BalanceAssertion:
+    """Guarda (o corrige) el saldo del banco al cierre de un día."""
+    b = db.scalar(select(BalanceAssertion).where(BalanceAssertion.account_id == account_id, BalanceAssertion.as_of == as_of))
+    if b is None:
+        b = BalanceAssertion(account_id=account_id, as_of=as_of, amount=amount, currency=currency)
+        db.add(b)
+    else:
+        b.amount = amount
+    db.flush()
+    return b
+
+
+def declare_snapshot(db: Session, account_id: int, day: str, amount: Decimal, currency: str = "EUR") -> BalanceAssertion:
+    """Un saldo visto durante `day` no es su cierre: luego pueden llegar más movimientos con esa fecha y descuadraría.
+    Se guarda como cierre del día anterior, restándole lo de `day` ya apuntado, que es lo que la foto incluye."""
+    anterior = (date.fromisoformat(day) - timedelta(days=1)).isoformat()
+    del_dia = balance(db, account_id, day, include_pending=True) - balance(db, account_id, anterior, include_pending=True)
+    return declare(db, account_id, anterior, amount - del_dia, currency)
+
+
 def budgets_of(db: Session, month: str) -> dict[int, Decimal]:
     """Un presupuesto sigue vigente los meses siguientes hasta que se cambie. Poner 0 lo quita."""
     vigentes: dict[int, Decimal] = {}
@@ -201,8 +221,7 @@ def set_value(db: Session, acc: LedgerAccount, value: Decimal, day: str, actor: 
     if diff:
         ajuste = account(db, VALUE_ADJUST, "equity")
         post_entry(db, day, f"Valor actualizado: {acc.name.split(':', 1)[-1]}", [(acc.id, diff, acc.currency), (ajuste.id, -diff, acc.currency)], actor)
-    db.add(BalanceAssertion(account_id=acc.id, as_of=day, amount=value, currency=acc.currency))
-    db.flush()
+    declare_snapshot(db, acc.id, day, value, acc.currency)
     return {"cuenta": acc.name, "valor": money(value), "ajuste": money(diff)}
 
 
@@ -284,14 +303,26 @@ def external_id(account_id: int, f: dict) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()[:40]
 
 
+def _ya_descargado(db: Session, acc: LedgerAccount, filas: list[dict]) -> list[dict] | None:
+    """Lo que la conexión con el banco ya apuntó en esa cuenta en las fechas del extracto (no se duplica)."""
+    from . import banco
+    return banco.libres_api(db, min(f["fecha"] for f in filas), acc) if filas else None
+
+
+def _en_api(f: dict, api: list[dict] | None) -> bool:
+    from . import banco
+    return banco.ya_por_api(f["fecha"], f["importe"], api)
+
+
 def import_rows(db: Session, acc: LedgerAccount, filas: list[dict], filename: str, sha: str, actor: str) -> dict:
     batch = ImportBatch(account_id=acc.id, filename=filename[:200], sha256=sha, rows=len(filas), created_by=actor)
     db.add(batch)
     db.flush()
     nuevos = dup = pendientes = 0
+    api = _ya_descargado(db, acc, filas)
     for f in filas:
         ext = external_id(acc.id, f)
-        if db.scalar(select(JournalEntry.id).where(JournalEntry.external_id == ext)):
+        if db.scalar(select(JournalEntry.id).where(JournalEntry.external_id == ext)) or _en_api(f, api):
             dup += 1
             continue
         contra, conocida = categorize(db, f["descripcion"], f["importe"])
@@ -595,7 +626,8 @@ def assertion(body: AssertionIn, p: Principal = Depends(require_admin), db: Sess
 def import_preview(body: ImportIn, db: Session = Depends(get_db)):
     filas, errores = parse_csv(body.contenido, body.mapa)
     acc = account(db, body.cuenta)
-    dup = sum(1 for f in filas if db.scalar(select(JournalEntry.id).where(JournalEntry.external_id == external_id(acc.id, f))))
+    api = _ya_descargado(db, acc, filas)
+    dup = sum(1 for f in filas if db.scalar(select(JournalEntry.id).where(JournalEntry.external_id == external_id(acc.id, f))) or _en_api(f, api))
     muestra = [{"fecha": f["fecha"], "descripcion": f["descripcion"], "importe": money(f["importe"])} for f in filas[:10]]
     return {"filas": len(filas), "nuevos": len(filas) - dup, "duplicados": dup, "errores": errores[:20], "muestra": muestra}
 

@@ -192,7 +192,8 @@ def test_entrada_sin_salida_de_euros_viene_de_inversion(client):
 def test_concilia_cada_fin_de_mes(hecho):
     with dbm.session_scope() as s:
         c = fin.reconcile(s)
-    assert {x["fecha"] for x in c} == {"2026-01-11", "2026-02-04"}
+    assert {x["fecha"] for x in c} == {"2026-01-11", "2026-02-03"}  # el último, como cierre del día anterior
+    assert all(x["cuadra"] for x in c)
 
 
 @pytest.mark.parametrize("desc,cuenta", [("Uber Eats", "expense:restaurantes"), ("Uber", "expense:transporte"), ("Estanco", "expense:tabaco"), ("Spotify", "expense:suscripciones"),

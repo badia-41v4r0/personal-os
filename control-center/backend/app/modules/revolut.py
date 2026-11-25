@@ -23,7 +23,7 @@ from ..config import ROOT
 
 sys.path.insert(0, str(ROOT / "collectors"))
 import ajustes  # noqa: E402
-from ..models import BalanceAssertion, ImportBatch, JournalEntry, Posting
+from ..models import ImportBatch, JournalEntry, Posting
 from . import finance as fin
 
 HEADER = ["Type", "Product", "Started Date", "Completed Date", "Description", "Amount", "Fee", "Currency", "State", "Balance"]
@@ -229,17 +229,16 @@ def apply(db: Session, text: str, filename: str, actor: str) -> dict:
         elif f["estado"] == "REVERTED" and ext in existing:
             revert(db, ext, actor)  # lo apuntamos cuando estaba pendiente y el banco lo ha anulado
     ultimo = max(fin_de_mes) if fin_de_mes else None
-    declarados = {b.as_of: b for b in db.scalars(select(BalanceAssertion).where(BalanceAssertion.account_id == banco.id))}
     for mes, f in fin_de_mes.items():
         # El saldo del extracto no resta lo pendiente: el disponible real, sí
         final = mes == ultimo
         cifra = f["saldo"] + (retenido if final else 0)
         # Fechado en el último pendiente: si no, el saldo sería anterior al pago que ya resta
         dia = max([f["fecha"], *(x["fecha"] for x in data["retenidos"] if x["estado"] == "PENDING")]) if final else f["fecha"]
-        if dia in declarados:
-            declarados[dia].amount = cifra
-        else:
-            db.add(BalanceAssertion(account_id=banco.id, as_of=dia, amount=cifra, currency="EUR"))
+        if final:  # el extracto pudo sacarse ese mismo día: lo que llegue después con esa fecha no está en él
+            fin.declare_snapshot(db, banco.id, dia, cifra)
+        else:  # un fin de mes con movimientos posteriores en el extracto sí es un cierre
+            fin.declare(db, banco.id, dia, cifra)
     return {"lote": batch.id, "nuevos": nuevos, "duplicados": dup, "por_revisar": revisar, "ignorados": [x for x in data["ignoradas"] if x["estado"] != "PENDING"], "saldo_final": fin.money(data["filas"][-1]["saldo"] + retenido) if data["filas"] else None}
 
 

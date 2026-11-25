@@ -38,7 +38,7 @@ def saldo(nombre, pendientes=True):
 
 def importar(txs, disponible=None, desde="2026-01-01"):
     with dbm.session_scope() as s:
-        return bk.importar(s, txs, Decimal(disponible) if disponible is not None else None, desde)
+        return bk.importar(s, txs, (Decimal(disponible), False) if disponible is not None else None, desde)
 
 
 @pytest.fixture()
@@ -89,7 +89,7 @@ def test_lo_que_ya_entro_por_csv_no_se_duplica_y_ensena_el_nombre(con_csv):
     with dbm.session_scope() as s:
         e = s.scalar(select(JournalEntry).where(JournalEntry.external_id.like("eb:%")))
         assert e.description == "La Pepa Restaurante" and e.entry_date == "2026-01-12"
-    assert bk.cfg()["alias"] == {"365 t178": "La Pepa Restaurante"} and bk.cfg()["desde"] == "2026-01-09"
+    assert bk.cfg()["alias"] == {"365 t178": "La Pepa Restaurante"} and bk.cfg()["desde"] == {rv.BANK: "2026-01-09"}
     assert saldo(rv.BANK) == Decimal("883.50")
 
 
@@ -128,12 +128,19 @@ def test_un_extracto_despues_de_la_api_no_duplica(client):
 
 # ---------- conexión ----------
 
+class Llamadas(list):
+    respuestas: dict
+
+
 @pytest.fixture()
 def api(client, monkeypatch, tmp_path):
     """Enable Banking simulado: guarda las llamadas y responde lo mínimo."""
-    llamadas = []
+    llamadas = Llamadas()
     respuestas = {
-        ("GET", "/aspsps"): {"aspsps": [{"name": "Revolut", "country": "ES", "maximum_consent_validity": 15552000}]},
+        ("GET", "/aspsps"): {"aspsps": [{"name": "Revolut", "country": "ES", "maximum_consent_validity": 15552000},
+                                        {"name": "BBVA", "country": "ES", "maximum_consent_validity": 7776000}]},
+        ("GET", "/application"): {"name": "Personal OS", "environment": "PRODUCTION", "active": True,
+                                  "redirect_urls": ["https://pc.ts.net:8770/finanzas/banco"]},
         ("POST", "/auth"): {"url": "https://tilisy.enablebanking.com/ais/start?sessionid=x"},
         ("POST", "/sessions"): {"session_id": "ses-1", "access": {"valid_until": "2099-01-01T00:00:00Z"},
                                 "accounts": [{"uid": "eur-1", "currency": "EUR"}, {"uid": "huf-1", "currency": "HUF"}]},
@@ -147,7 +154,8 @@ def api(client, monkeypatch, tmp_path):
     monkeypatch.setattr(bk, "_call", falsa)
     monkeypatch.setenv("POS_SECRETS_DIR", str(tmp_path))
     (tmp_path / "app-1.pem").write_text("x")
-    bk._guardar(app_id="app-1")
+    bk._guardar(app_id="app-1", aspsp={"name": "Revolut", "country": "ES"})
+    llamadas.respuestas = respuestas
     return llamadas
 
 
@@ -207,3 +215,25 @@ def test_aviso_de_caducidad(api, monkeypatch):
     bk._diario_sync(datetime.now(timezone.utc))
     bk._diario_sync(datetime.now(timezone.utc))
     assert len(avisos) == 1 and "Reconecta" in avisos[0][1]
+
+
+def test_el_saldo_de_ahora_no_descuadra_con_lo_que_llega_despues(client, monkeypatch):
+    """El 5/11 el saldo se vio a media mañana y luego entraron más pagos de ese día: descuadraba sin haber error."""
+    monkeypatch.setattr(bk, "hoy", lambda: "2026-11-05")
+    manana = [tx("2026-11-04", "Mercadona", "-20.00"), tx("2026-11-05", "Cabify", "-5.00")]
+    assert importar(manana, disponible="-25.00")["saldo"] == "-25.00"
+    monkeypatch.setattr(bk, "hoy", lambda: "2026-11-06")
+    importar([*manana, tx("2026-11-05", "Can Marlau", "-18.35")], disponible="-43.35")
+    with dbm.session_scope() as s:
+        c = fin.reconcile(s)
+    assert {(x["fecha"], x["banco"]) for x in c} == {("2026-11-04", "-20.00"), ("2026-11-05", "-43.35")}
+    assert all(x["cuadra"] for x in c)
+
+
+def test_poner_el_valor_y_luego_llega_un_movimiento_del_mismo_dia(client):
+    with dbm.session_scope() as s:
+        flex, banco = fin.account(s, "asset:revolut-flexible", "asset"), fin.account(s, rv.BANK, "asset")
+        fin.set_value(s, flex, Decimal("27.82"), "2026-11-05", "a")
+        fin.post_entry(s, "2026-11-05", "To Flexible Cash Funds", [(flex.id, Decimal("2.00"), "EUR"), (banco.id, Decimal("-2.00"), "EUR")], "a")
+        assert all(x["cuadra"] for x in fin.reconcile(s))
+        assert fin.savings_view(s)["cuentas"][-1]["valorada"] == "2026-11-04"

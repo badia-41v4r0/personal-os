@@ -62,18 +62,21 @@ enfermo o de viaje, marca un periodo sin entrenar en Recuperación y la vuelta s
 la foto de un ticket. Lo que no se pueda clasificar queda pendiente y no cuenta hasta que lo revises. Presupuesto
 mensual por categoría.
 
-*Descarga automática del banco (opcional).* Con [Enable Banking](https://enablebanking.com) (gratis para tus propias
-cuentas, solo lectura) los movimientos llegan solos cada día a las 3:00:
-1. En su panel crea una aplicación **Production**. En *Allowed redirect URLs* pon la dirección de tu panel seguida de
-   `/finanzas/banco` (por ejemplo `https://<tu-equipo>.<tu-tailnet>.ts.net:8770/finanzas/banco`); en privacidad y
-   condiciones, `/privacidad` y `/condiciones` de esa misma dirección.
-2. Deja que el navegador genere la clave y guarda el `.pem` en `secrets/` (se llama como el Application ID).
-3. Actívala con «Activate by linking accounts».
-4. En Finanzas → Importar y ajustes → Banco, pega el Application ID y pulsa «Conectar». El permiso dura hasta 180 días;
-   el panel avisa una semana antes para que lo renueves.
+*Descarga automática del banco (opcional).* Con [Enable Banking](https://enablebanking.com) (open banking europeo, gratis
+para tus propias cuentas, solo lectura) los movimientos llegan solos cada día a las 3:00. Vale cualquier banco que Enable
+Banking tenga en tu país. Se configura en **Finanzas → Importar y ajustes → Banco**, con un asistente:
+1. **Crea la aplicación** en Enable Banking, de tipo *Production*. El asistente te da ya rellenos los valores de tu panel
+   (redirect URL, privacidad, condiciones y descripción) para copiarlos.
+2. **Sube la clave** `.pem` que genera el navegador y pega el Application ID. La clave la guarda el Host Agent en
+   `secrets/` con permisos 600; no vuelve a salir.
+3. **Comprueba**: el panel pregunta a Enable Banking y te dice si falta algo (activarla con «Activate by linking
+   accounts», que sea Production, que la redirect URL coincida).
+4. **Elige tu país y tu banco.**
+5. **Conecta**: das permiso en tu banco (hasta 180 días; el panel avisa una semana antes de que caduque). Si tu panel no
+   va por https y el banco te devuelve a una página que no carga, pega esa dirección en el asistente.
 
-Lo que ya entró por extracto no se duplica (se reconoce por importe y fecha), y los comercios se reconocen con el nombre
-que ya conocía. De momento descarga la cuenta en euros; las divisas siguen entrando por CSV.
+Cada cuenta en euros tiene su cuenta en Finanzas. Lo que ya entró por extracto no se duplica (se reconoce por importe y
+fecha), y los comercios se reconocen con el nombre que ya conocía. Las cuentas en otras divisas siguen por CSV.
 
 **Carrera.** Candidaturas, ofertas del radar (lee las alertas de empleo de tu correo y las puntúa con tus reglas) y
 solicitudes con agente: rellena el formulario en un navegador aislado y **tú apruebas el envío** viendo exactamente

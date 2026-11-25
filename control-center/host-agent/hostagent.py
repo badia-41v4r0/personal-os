@@ -807,6 +807,40 @@ def _env_poner(clave: str, valor: str) -> None:
     tmp.replace(ENV_FILE)
 
 
+# ---------- clave de Enable Banking (banco, solo lectura): solo el Host Agent escribe en secrets/ ----------
+
+SECRETS = Path(os.environ.get("POS_SECRETS_DIR", str(ROOT / "secrets")))
+APP_ID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+
+
+@app.put("/v1/banco/clave", dependencies=[Depends(auth)])
+def banco_clave(request: Request, app_id: str = Body(...), pem: str = Body(...)):
+    """Guarda la clave privada de la aplicación de Enable Banking en secrets/<app_id>.pem (600). Nunca la devuelve."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    app_id = app_id.strip().lower()
+    if not APP_ID_RE.fullmatch(app_id) or len(pem) > 20_000:
+        _audit(request, "banco.clave", "denied")
+        raise HTTPException(422, "El Application ID o el archivo no son válidos")
+    try:
+        key = serialization.load_pem_private_key(pem.encode(), None)
+    except (ValueError, TypeError):
+        _audit(request, "banco.clave", "denied", app_id=app_id)
+        raise HTTPException(422, "Ese archivo no es una clave privada (.pem) sin contraseña") from None
+    if not isinstance(key, rsa.RSAPrivateKey):
+        raise HTTPException(422, "Enable Banking usa claves RSA: ese archivo es de otro tipo")
+    SECRETS.mkdir(parents=True, exist_ok=True, mode=0o700)
+    destino = SECRETS / f"{app_id}.pem"
+    tmp = destino.with_name(destino.name + ".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(pem.strip() + "\n")
+    os.chmod(tmp, 0o600)
+    tmp.replace(destino)
+    _audit(request, "banco.clave", "ok", app_id=app_id)  # nunca la clave
+    return {"app_id": app_id, "guardada": True}
+
+
 @app.get("/v1/credenciales", dependencies=[Depends(auth)])
 def credenciales_estado():
     """Qué credenciales del .env están puestas (nunca su valor)."""
