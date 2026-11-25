@@ -17,6 +17,7 @@ import { CommandPalette } from "./command-palette";
 import { ChatFlotante } from "./chat/chat-flotante";
 import { StatusDot } from "./status";
 import { asistente, setAsistente } from "@/lib/asistente";
+import { Logo } from "./logo";
 
 type Me = { username: string; role: string; csrf_token: string; must_change_password?: boolean };
 type Ctx = { me: Me; lastEvent: BusEvent | null; live: "ws" | "poll" | "off"; subscribe: (fn: (e: BusEvent) => void) => () => void; inst: Instancia | null; reloadInst: () => void };
@@ -167,7 +168,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const sidebar = (
     <div className="flex h-full flex-col gap-4 p-3">
       <div className="flex items-center gap-2.5 px-3 pt-2">
-        <div className="grid size-8 place-items-center rounded-lg bg-primary/15 font-mono text-sm font-semibold text-primary">{asistente().charAt(0).toUpperCase()}</div>
+        <Logo className="size-8 rounded-lg" />
         <div className="leading-tight">
           <div className="text-sm font-semibold tracking-tight">{asistente()}</div>
           <div className="text-[11px] text-muted-foreground">Personal OS</div>

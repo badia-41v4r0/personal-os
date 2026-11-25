@@ -207,6 +207,8 @@ async def loop() -> None:
         try:
             await ingest_spool()
             await daily_test()
+            from ..modules import banco
+            await banco.diario()  # movimientos del banco, cada día a partir de las 3:00
             from . import actions, runs
             await asyncio.to_thread(actions.expire_pending)
             await runs.ingest_orders()

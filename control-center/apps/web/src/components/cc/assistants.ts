@@ -1,8 +1,9 @@
-import { BriefcaseBusiness, CalendarDays, CheckSquare, Dumbbell, Heart, Landmark, Lightbulb, Plane, Popcorn, Search, Target, TrendingUp, type LucideIcon } from "lucide-react";
+import { Brain, BriefcaseBusiness, CalendarCheck, CalendarDays, CheckSquare, Clapperboard, Compass, Dumbbell, GraduationCap, Heart, HeartPulse, Landmark, Lightbulb, Plane, Popcorn, Search, Target, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
 import { asistente } from "@/lib/asistente";
 
 export type Quick = { label: string; icon: LucideIcon; text: string };
-export type Assistant = { key: string | null; name: string; hint: string; base: string; quick: Quick[] };
+/** `icon`/`tono`: su avatar en el chat (el general usa el logo). `tono` son clases de Tailwind completas (fondo + texto). */
+export type Assistant = { key: string | null; name: string; hint: string; base: string; quick: Quick[]; icon?: LucideIcon; tono?: string };
 
 const main: Assistant = {
   key: null, get name() { return asistente(); }, hint: "Asistente general", base: "/sessions/main",
@@ -12,7 +13,20 @@ const main: Assistant = {
     { label: "Revisar oportunidades laborales", icon: BriefcaseBusiness, text: "Revisa mis últimas ofertas y dime cuáles merecen la pena." },
   ],
 };
-const a = (key: string, name: string, hint: string, quick: Quick[]): Assistant => ({ key, name, hint, base: `/assistants/${key}`, quick });
+const a = (key: string, name: string, hint: string, quick: Quick[]): Assistant => ({ key, name, hint, base: `/assistants/${key}`, quick, ...AVATAR[key] });
+
+const AVATAR: Record<string, { icon: LucideIcon; tono: string }> = {
+  agenda: { icon: CalendarCheck, tono: "bg-sky-500/15 text-sky-600 dark:text-sky-300" },
+  coach: { icon: Dumbbell, tono: "bg-orange-500/15 text-orange-600 dark:text-orange-300" },
+  salud: { icon: HeartPulse, tono: "bg-rose-500/15 text-rose-600 dark:text-rose-300" },
+  finanzas: { icon: Wallet, tono: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" },
+  carrera: { icon: BriefcaseBusiness, tono: "bg-amber-500/15 text-amber-600 dark:text-amber-300" },
+  tutor: { icon: GraduationCap, tono: "bg-violet-500/15 text-violet-600 dark:text-violet-300" },
+  objetivos: { icon: Target, tono: "bg-red-500/15 text-red-600 dark:text-red-300" },
+  estilo: { icon: Compass, tono: "bg-teal-500/15 text-teal-600 dark:text-teal-300" },
+  ocio: { icon: Clapperboard, tono: "bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-300" },
+  conocimiento: { icon: Brain, tono: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300" },
+};
 
 const organizacion = a("agenda", "Organización", "Agenda y tareas", [
   { label: "Qué hago hoy", icon: CheckSquare, text: "Con mi agenda y mis tareas, dime qué debería hacer hoy y en qué orden." },

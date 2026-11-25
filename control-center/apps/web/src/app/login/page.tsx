@@ -2,11 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Lock } from "lucide-react";
 import { post, setCsrf } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/cc/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,8 +34,8 @@ export default function LoginPage() {
     <main className="grid min-h-dvh place-items-center p-4">
       <form onSubmit={submit} className="w-full max-w-sm space-y-5 rounded-xl border border-border bg-card p-6 shadow-2xl shadow-black/30">
         <div className="space-y-1">
-          <div className="mb-4 grid size-9 place-items-center rounded-lg bg-primary/15 text-primary">
-            <Lock className="size-4" />
+          <div className="mb-4">
+            <Logo className="size-10" />
           </div>
           <h1 className="text-lg font-semibold tracking-tight">Personal OS</h1>
           <p className="text-sm text-muted-foreground">Acceso privado.</p>

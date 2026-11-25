@@ -12,7 +12,10 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   applicationName: "Personal OS",
   appleWebApp: { capable: true, title: "Personal OS", statusBarStyle: "black-translucent" },
-  icons: { icon: "/icons/icon-192.png", apple: "/icons/icon-180.png" },
+  icons: {
+    icon: [{ url: "/icons/logo.svg", type: "image/svg+xml" }, { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: "/icons/icon-180.png",
+  },
 };
 
 export const viewport: Viewport = {

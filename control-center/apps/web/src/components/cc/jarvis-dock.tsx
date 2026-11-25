@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import type { Assistant } from "./assistants";
 import { Markdown } from "./markdown";
 import { usePanel } from "./shell";
+import { AvatarAsistente } from "./avatar-asistente";
 
 type Page = { items: TranscriptItem[] };
 type MainState = { current_run: string | null; queued: number; tmux: boolean | null };
@@ -97,7 +98,7 @@ export function JarvisDock({ assistant, onClose }: { assistant: Assistant; onClo
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <span className="grid size-8 place-items-center rounded-lg bg-primary/12 font-mono text-sm font-semibold text-primary">{assistant.name[0]}</span>
+        <AvatarAsistente asistente={assistant} tam="md" />
         <div className="min-w-0 flex-1 leading-tight">
           <div className="text-sm font-semibold">{assistant.name}</div>
           <div className="text-[11px] text-muted-foreground">{busy ? "Trabajando…" : state?.tmux === false ? "Sin conexión" : assistant.hint}</div>

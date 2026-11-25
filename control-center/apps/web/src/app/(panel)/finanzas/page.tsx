@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
+import { Banco } from "@/components/cc/banco";
 import { HBars } from "@/components/cc/charts";
 import { Markdown } from "@/components/cc/markdown";
 import { useAct, Field, TextField, selectClass } from "@/components/cc/form";
@@ -395,6 +396,10 @@ export default function FinanzasPage() {
 
           {tab === "herramientas" && (
             <div className="grid gap-4 lg:grid-cols-3">
+              <Card className="lg:col-span-3">
+                <CardHeader><CardTitle>Banco</CardTitle></CardHeader>
+                <CardContent><Banco onDone={reload} /></CardContent>
+              </Card>
               <Card>
                 <CardHeader><CardTitle>Importar extracto</CardTitle></CardHeader>
                 <CardContent><Importar cuentas={accounts.data ?? []} onDone={reload} /></CardContent>

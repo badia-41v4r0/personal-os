@@ -7,6 +7,7 @@ import type { Assistant } from "../assistants";
 import { Markdown } from "../markdown";
 import { sinAdjuntos, turnos, type Detalle, type EnDirecto, type Turno } from "./datos";
 import { describirLinea, duracion } from "./pasos";
+import { AvatarAsistente } from "../avatar-asistente";
 
 /** Reloj que avanza cada segundo mientras hace falta (para el «lleva 12 s»). */
 function useAhora(activo: boolean) {
@@ -129,7 +130,7 @@ export function Vista({ data, vivo, asistente, onWiki, onSugerencia }: {
         </div>
       ) : (
       <div className="flex min-h-full flex-col items-center justify-center px-4 py-10 text-center">
-        <div className="grid size-12 place-items-center rounded-2xl bg-primary/12 font-mono text-lg font-semibold text-primary">{asistente.name[0]}</div>
+        <AvatarAsistente asistente={asistente} tam="lg" />
         <h2 className="mt-4 text-xl font-semibold tracking-tight">¿En qué te ayudo?</h2>
         <p className="mt-1 text-sm text-muted-foreground">{asistente.name} · {asistente.hint}</p>
         {asistente.quick.length > 0 && (

@@ -18,6 +18,7 @@ from .core import actions, assistants, gateway, memory, notifications
 from .modules import agent_caps  # noqa: F401  (registra capacidades y lecturas)
 from .modules import onboarding as onboarding_module  # noqa: F401  (config.*.set, onboarding.hecho, config.get)
 from .modules import finance as finance_module
+from .modules import banco as banco_module
 from .modules import checkin as checkin_module
 from .modules import home as home_module
 from .modules import education as education_module
@@ -90,6 +91,7 @@ app.include_router(assistants.router)
 app.include_router(home_module.router)
 app.include_router(checkin_module.router)
 app.include_router(finance_module.router)
+app.include_router(banco_module.router)
 app.include_router(personal_module.router)
 app.include_router(ocio_module.router)
 app.include_router(education_module.router)

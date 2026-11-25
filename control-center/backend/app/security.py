@@ -100,13 +100,21 @@ def lookup_session(db: Session, token: str | None) -> AuthSession | None:
 
 
 def origin_ok(origin: str | None) -> bool:
-    """Origen exacto, o `esquema://host:*` para admitir ese host en cualquier puerto."""
+    """Origen exacto; `esquema://host:*` para admitir ese host en cualquier puerto; o `esquema://*.dominio` para
+    admitir un solo subdominio de ese dominio (p. ej. los túneles temporales `https://*.trycloudflare.com`)."""
     if not origin:
         return False
     origin = origin.rstrip("/")
     for ok in get_settings().allowed_origins:
         if ok == origin:
             return True
+        if "://*." in ok:
+            esquema, dominio = ok.split("://*.", 1)
+            prefijo = esquema + "://"
+            if origin.startswith(prefijo) and origin.endswith("." + dominio):
+                sub = origin[len(prefijo):-len(dominio) - 1]
+                if sub and all(c.isalnum() or c == "-" for c in sub):
+                    return True
         if ok.endswith(":*"):
             base = ok[:-2]
             if origin == base or (origin.startswith(base + ":") and origin[len(base) + 1:].isdigit()):

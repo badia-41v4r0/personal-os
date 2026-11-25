@@ -62,6 +62,19 @@ enfermo o de viaje, marca un periodo sin entrenar en Recuperación y la vuelta s
 la foto de un ticket. Lo que no se pueda clasificar queda pendiente y no cuenta hasta que lo revises. Presupuesto
 mensual por categoría.
 
+*Descarga automática del banco (opcional).* Con [Enable Banking](https://enablebanking.com) (gratis para tus propias
+cuentas, solo lectura) los movimientos llegan solos cada día a las 3:00:
+1. En su panel crea una aplicación **Production**. En *Allowed redirect URLs* pon la dirección de tu panel seguida de
+   `/finanzas/banco` (por ejemplo `https://<tu-equipo>.<tu-tailnet>.ts.net:8770/finanzas/banco`); en privacidad y
+   condiciones, `/privacidad` y `/condiciones` de esa misma dirección.
+2. Deja que el navegador genere la clave y guarda el `.pem` en `secrets/` (se llama como el Application ID).
+3. Actívala con «Activate by linking accounts».
+4. En Finanzas → Importar y ajustes → Banco, pega el Application ID y pulsa «Conectar». El permiso dura hasta 180 días;
+   el panel avisa una semana antes para que lo renueves.
+
+Lo que ya entró por extracto no se duplica (se reconoce por importe y fecha), y los comercios se reconocen con el nombre
+que ya conocía. De momento descarga la cuenta en euros; las divisas siguen entrando por CSV.
+
 **Carrera.** Candidaturas, ofertas del radar (lee las alertas de empleo de tu correo y las puntúa con tus reglas) y
 solicitudes con agente: rellena el formulario en un navegador aislado y **tú apruebas el envío** viendo exactamente
 lo que se mandará.

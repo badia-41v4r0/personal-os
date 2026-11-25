@@ -54,6 +54,7 @@ def _movimientos() -> tuple:
 INGRESOS = (
     (r"devoluciones tributarias", "income:impuestos"),
     (r"money added via bizum", "income:bizum"),
+    (r"^bizum payment from", "income:bizum"),  # así lo describe la descarga del banco (banco.py)
 )
 
 
@@ -162,6 +163,18 @@ def external_id(f: dict) -> str:
     return "revolut:" + hashlib.sha256(f"{f['inicio']}|{f['descripcion']}|{f['importe']}|{f['orden']}".encode()).hexdigest()[:32]
 
 
+def _api(db: Session, data: dict) -> list[dict] | None:
+    """Lo que ya descargó la conexión con el banco en las fechas del extracto: no se apunta dos veces."""
+    from . import banco
+    fechas = [f["fecha"] for f in data["filas"] + data["retenidos"]]
+    return banco.libres_api(db, min(fechas)) if fechas else None
+
+
+def _ya_por_api(fecha: str, importe: Decimal, api: list[dict] | None) -> bool:
+    from . import banco
+    return banco.ya_por_api(fecha, importe, api)
+
+
 def ensure_accounts(db: Session) -> None:
     for name, kind in ACCOUNTS.items():
         fin.account(db, name, kind)
@@ -181,13 +194,14 @@ def apply(db: Session, text: str, filename: str, actor: str) -> dict:
     db.add(batch)
     db.flush()
     existing = set(db.scalars(select(JournalEntry.external_id).where(JournalEntry.external_id.like("revolut:%"))))
+    api = _api(db, data)
     nuevos = dup = revisar = 0
     fin_de_mes: dict[str, dict] = {}
     rules = learned(db)
     for f in data["filas"]:
         fin_de_mes[f["fecha"][:7]] = f
         ext = external_id(f)
-        if ext in existing:
+        if ext in existing or _ya_por_api(f["fecha"], f["importe"] - f["comision"], api):
             dup += 1
             continue
         cuenta = classify(f, rules)
@@ -206,7 +220,7 @@ def apply(db: Session, text: str, filename: str, actor: str) -> dict:
         ext = external_id(f)
         if f["estado"] == "PENDING":
             retenido += f["importe"] - f["comision"]
-            if ext not in existing:
+            if ext not in existing and not _ya_por_api(f["fecha"], f["importe"] - f["comision"], api):
                 cuenta = classify(f, rules)
                 contra = fin.account(db, cuenta) if cuenta else fin.account(db, fin.SIN_CATEGORIZAR, "expense")
                 fin.post_entry(db, f["fecha"], f["descripcion"], [(banco.id, f["importe"], "EUR"), (contra.id, -f["importe"], "EUR")], actor,
@@ -297,7 +311,8 @@ def preview(db: Session, text: str) -> dict:
                 "muestra": [{"fecha": f["fecha"], "descripcion": f"{f['descripcion']} ({f['importe']} {plan['moneda']})", "importe": fin.money(f["eur"])} for f in plan["movimientos"][:5]]}
     data = parse(text)
     existing = set(db.scalars(select(JournalEntry.external_id).where(JournalEntry.external_id.like("revolut:%"))))
-    dup = sum(1 for f in data["filas"] if external_id(f) in existing)
+    api = _api(db, data)
+    dup = sum(1 for f in data["filas"] if external_id(f) in existing or _ya_por_api(f["fecha"], f["importe"] - f["comision"], api))
     rules = learned(db)
     return {"filas": len(data["filas"]), "nuevos": len(data["filas"]) - dup, "duplicados": dup, "errores": [],
             "ignorados": len(data["ignoradas"]), "por_revisar": sum(1 for f in data["filas"] if classify(f, rules) is None),

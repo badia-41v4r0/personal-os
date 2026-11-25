@@ -14,6 +14,7 @@ import { ocupada, type Conversacion, type EnDirecto } from "./datos";
 import { useConversacion } from "./datos";
 import { describirLinea } from "./pasos";
 import { Vista } from "./vista";
+import { AvatarAsistente } from "../avatar-asistente";
 
 const GUARDADO = "pos.chat.conversaciones";
 
@@ -258,7 +259,7 @@ export function ChatFlotante() {
         <div className="flex items-end gap-1 rounded-[1.75rem] bg-background/90 p-1 shadow-lg ring-1 ring-border backdrop-blur transition-shadow focus-within:ring-ring/60">
           <button type="button" onClick={abrir} title={`Abrir el chat (Ctrl+J)${titulo ? ` · ${titulo}` : ""}`} aria-label={`Abrir el chat con ${asistente.name}`}
             className="mb-1 ml-1 flex h-9 shrink-0 items-center gap-1 rounded-full px-1.5 hover:bg-muted">
-            <span className="grid size-7 place-items-center rounded-full bg-primary/12 font-mono text-xs font-semibold text-primary">{asistente.name[0]}</span>
+            <AvatarAsistente asistente={asistente} tam="sm" redondo />
             <ChevronUp className="size-4 text-muted-foreground" />
           </button>
           <div className="min-w-0 flex-1">
@@ -314,7 +315,7 @@ export function ChatFlotante() {
               <div className="relative">
                 <button type="button" onClick={() => setSelector(!selector)} aria-expanded={selector} aria-haspopup="listbox"
                   className="flex h-9 items-center gap-2 rounded-lg px-2 text-sm font-semibold hover:bg-muted">
-                  <span className="grid size-6 place-items-center rounded-md bg-primary/12 font-mono text-xs text-primary">{asistente.name[0]}</span>
+                  <AvatarAsistente asistente={asistente} tam="xs" />
                   {asistente.name}
                   <ChevronDown className="size-4 text-muted-foreground" />
                 </button>
@@ -327,7 +328,7 @@ export function ChatFlotante() {
                         return (
                           <li key={k} role="option" aria-selected={k === clave}>
                             <button type="button" onClick={() => cambiarAsistente(k)} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-muted">
-                              <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary/12 font-mono text-xs font-semibold text-primary">{a.name[0]}</span>
+                              <AvatarAsistente asistente={a} tam="sm" />
                               <span className="min-w-0 flex-1 leading-tight"><span className="block text-sm font-medium">{a.name}</span><span className="block truncate text-xs text-muted-foreground">{a.hint}</span></span>
                               {k === clave && <Check className="size-4 text-primary" />}
                             </button>
