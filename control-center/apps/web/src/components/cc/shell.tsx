@@ -20,6 +20,7 @@ import { EN_VISTA_PREVIA } from "@/lib/base";
 import { StatusDot } from "./status";
 import { asistente, setAsistente } from "@/lib/asistente";
 import { Logo } from "./logo";
+import { ConsumoMotores } from "./consumo-motores";
 
 type Me = { username: string; role: string; csrf_token: string; must_change_password?: boolean };
 type Ctx = { me: Me; lastEvent: BusEvent | null; live: "ws" | "poll" | "off"; subscribe: (fn: (e: BusEvent) => void) => () => void; inst: Instancia | null; reloadInst: () => void };
@@ -192,6 +193,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <StatusDot level={live === "ws" ? "ok" : live === "poll" ? "warn" : "unknown"} pulse />
           {live === "ws" ? "Tiempo real" : live === "poll" ? "Sondeo cada 5 s" : "Conectando…"}
         </div>
+        <ConsumoMotores />
         <div className="flex items-center justify-between">
           <span className="truncate">{me.username}</span>
           <Button variant="ghost" size="icon-sm" onClick={logout} aria-label="Cerrar sesión">

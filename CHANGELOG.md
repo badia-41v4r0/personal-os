@@ -6,6 +6,15 @@ sea 0.x, una versión menor (0.**2**.0) puede traer cambios que pidan hacer algo
 
 ## [Sin publicar]
 
+## [0.1.3] — 2026-11-26
+
+### Novedades
+
+- **Consumo de los motores en la barra lateral.** Debajo de «Tiempo real», un anillo por motor (Claude, Flash, Opus,
+  Codex) con el porcentaje gastado de su límite más lleno; ámbar desde el 85 %, atenuado si el dato tiene más de un día.
+  Al pasar el ratón enseña cada periodo y cuándo se reinicia; al pulsarlo lleva a Ajustes → Sistema. Solo salen los
+  motores con lectura.
+
 ## [0.1.2] — 2026-11-26
 
 ### Novedades
