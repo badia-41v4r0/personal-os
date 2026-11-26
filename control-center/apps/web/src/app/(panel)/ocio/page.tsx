@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api, post } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
+import { BASE } from "@/lib/base";
 
 type Tipo = "pelicula" | "serie";
 type Estado = "pendiente" | "viendo" | "vista" | "abandonada";
@@ -29,7 +30,7 @@ type Lista = { tmdb: boolean; items: Item[] };
 const ESTADOS: [Estado, string][] = [["viendo", "Viendo"], ["pendiente", "Quiero verla"], ["vista", "Vista"], ["abandonada", "Abandonada"]];
 const ESTADO_LABEL = Object.fromEntries(ESTADOS) as Record<Estado, string>;
 const ORDEN: Record<Estado, number> = { viendo: 0, pendiente: 1, vista: 2, abandonada: 3 };
-const img = (size: "w92" | "w342", name: string) => `/api/v1/me/ocio/imagen/${size}/${name}`;
+const img = (size: "w92" | "w342", name: string) => `${BASE}/api/v1/me/ocio/imagen/${size}/${name}`;
 const progreso = (i: Item) => (i.tipo === "serie" && i.temporada ? `T${i.temporada} · E${i.capitulo ?? 0}` : null);
 
 /** Siguiente capítulo: si se acaba la temporada (y se sabe cuántos tiene), pasa a la siguiente. */

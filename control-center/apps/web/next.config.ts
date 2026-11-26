@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
   ...(isProd
     ? {
         output: "export", trailingSlash: true, images: { unoptimized: true },
+        // Vista previa del Constructor: la misma web servida en /vista-previa/ del panel real
+        ...(process.env.NEXT_PUBLIC_BASE_PATH ? { basePath: process.env.NEXT_PUBLIC_BASE_PATH } : {}),
         // Solo para compilar un entorno de prueba sin tocar el `out` que sirve el panel en marcha
         ...(process.env.CC_WEB_OUT ? { distDir: process.env.CC_WEB_OUT } : {}),
       }

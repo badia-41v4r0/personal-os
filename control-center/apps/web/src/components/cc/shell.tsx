@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { NAV_AJUSTES, NAV_GROUPS, NAV_MOBILE, enSeccion, isActive, tituloDe, type NavItem } from "./nav";
 import { CommandPalette } from "./command-palette";
 import { ChatFlotante } from "./chat/chat-flotante";
+import { CambiosEnCurso, FranjaVistaPrevia } from "./cambios";
+import { EN_VISTA_PREVIA } from "@/lib/base";
 import { StatusDot } from "./status";
 import { asistente, setAsistente } from "@/lib/asistente";
 import { Logo } from "./logo";
@@ -203,6 +205,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <PanelCtx.Provider value={{ me, lastEvent, live, subscribe, inst, reloadInst }}>
       <CommandPalette open={search} onClose={() => setSearch(false)} />
+      {EN_VISTA_PREVIA ? <FranjaVistaPrevia /> : <CambiosEnCurso />}
       <div className="flex min-h-dvh">
         <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">{sidebar}</aside>
         <div className="flex min-w-0 flex-1 flex-col">

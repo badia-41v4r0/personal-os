@@ -29,6 +29,8 @@ Capacidades de ejecución (M3):
   POST /v1/timers/{name}/enabled      encender o apagar un timer (al activar o desactivar su módulo)
   POST /v1/models/{key}/ask           consulta de solo texto a Codex o Antigravity, encerrada con bwrap: sin datos personales
   POST /v1/voice/transcribe           voz a texto con el Whisper del contenedor; el audio se borra al terminar
+  /v1/cambios y /v1/cambios/{aplicar,deshacer,actualizar,restaurar,buscar}: supervisor de cambios (unidad aparte)
+  /v1/constructor y /v1/constructor/{abrir,arrancar,cerrar,turno,parar}: Constructor y vista previa (unidades aparte)
   POST /v1/notify/telegram            aviso por Telegram y al panel con bin/telegram-send.sh (máx. 10 por hora; el token no sale de aquí)
 
 Uso: python hostagent.py   (variables CC_HOSTAGENT_SOCKET, CC_HOSTAGENT_TOKEN, CC_DATA_DIR)
@@ -1838,6 +1840,213 @@ def timer_run(request: Request, name: str):
 @app.exception_handler(Exception)
 def _err(_, exc: Exception):
     return JSONResponse({"detail": "error interno del host agent"}, status_code=500)
+
+
+# ---------- Constructor, vista previa y cambios del código (control-center/cambios/) ----------
+# Todo lo largo va en unidades transitorias de systemd, no como hijos de este proceso: un reinicio del panel o del Host
+# Agent (por ejemplo, al aplicar un cambio) no corta ni el turno del Constructor ni la operación del supervisor.
+CAMBIOS_DIR = ROOT / "control-center/cambios"
+CONSTR_DIR = ROOT / "data/constructor"
+UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+COMMIT_RE = re.compile(r"^[0-9a-f]{7,40}$")
+COPIA_RE = re.compile(r"^\d{8}-\d{6}-[a-z]{1,20}$")
+VERSION_RE = re.compile(r"^v?\d{1,4}\.\d{1,4}\.\d{1,4}$")
+PROV_CONSTRUCTOR = ("claude", "codex", "opencode")
+_reserva_lock = threading.Lock()
+
+
+def _unidad(nombre: str) -> str:
+    return f"{INST}-cc-{nombre}"
+
+
+def _unidad_activa(nombre: str) -> bool:
+    r = subprocess.run(["systemctl", "--user", "is-active", "--quiet", f"{_unidad(nombre)}.service"], capture_output=True, timeout=TIMEOUT)
+    return r.returncode == 0
+
+
+def _systemd_run(nombre: str, script: str, *args: str) -> None:
+    """Lanza control-center/cambios/<script> como unidad transitoria <inst>-cc-<nombre> (una a la vez por nombre)."""
+    u = _unidad(nombre)
+    subprocess.run(["systemctl", "--user", "reset-failed", f"{u}.service"], capture_output=True, timeout=TIMEOUT)
+    r = subprocess.run(["systemd-run", "--user", "--quiet", "--collect", f"--unit={u}", f"--setenv=POS_INSTANCE={INST}",
+                        f"--working-directory={ROOT}", "--", sys.executable, str(CAMBIOS_DIR / script), *args],
+                       capture_output=True, text=True, timeout=60)
+    if r.returncode != 0:
+        raise HTTPException(500, f"No se pudo lanzar {u}: {r.stderr.strip()[-200:]}")
+
+
+def _script_json(script: str, *args: str, timeout: int = 60) -> dict:
+    r = subprocess.run([sys.executable, str(CAMBIOS_DIR / script), *args], capture_output=True, text=True, timeout=timeout,
+                       env={**os.environ, "POS_INSTANCE": INST}, cwd=ROOT)
+    if r.returncode != 0:
+        raise HTTPException(500, (r.stderr or r.stdout).strip()[-300:] or "error")
+    return json.loads(r.stdout)
+
+
+def _personalizacion() -> dict | None:
+    try:
+        return json.loads((CONSTR_DIR / "personalizacion.json").read_text())
+    except (OSError, ValueError):
+        return None
+
+
+def _sin_secretos(p: dict | None) -> dict | None:
+    if p:
+        p.pop("token", None)
+        p.pop("db_url", None)
+    return p
+
+
+def _ocupado_cambios() -> None:
+    if _unidad_activa("cambios"):
+        raise HTTPException(409, "Ya hay un cambio en marcha: espera a que termine")
+
+
+@app.get("/v1/cambios", dependencies=[Depends(auth)])
+def cambios_estado():
+    """Versión, operación en curso o la última, personalizaciones aplicadas, copias de seguridad e historial."""
+    d = _script_json("supervisor.py", "listar")
+    d["en_marcha"] = _unidad_activa("cambios")
+    _sin_secretos(d.get("personalizacion_abierta"))
+    return d
+
+
+@app.post("/v1/cambios/buscar", dependencies=[Depends(auth)])
+def cambios_buscar(request: Request):
+    _audit(request, "cambios.buscar", "ok")
+    return _script_json("supervisor.py", "buscar", timeout=120)
+
+
+@app.post("/v1/cambios/{op}", dependencies=[Depends(auth)])
+def cambios_lanzar(request: Request, op: str, body: dict = Body(default_factory=dict)):
+    """aplicar {titulo} · deshacer {commit} · actualizar {version?} · restaurar {copia, vault}"""
+    if op == "aplicar":
+        titulo = re.sub(r"\s+", " ", str(body.get("titulo") or "")).strip()[:120] or "Cambios del Constructor"
+        if _personalizacion() is None:
+            raise HTTPException(409, "No hay ninguna personalización abierta")
+        if _unidad_activa("constructor"):
+            raise HTTPException(409, "El Constructor aún está trabajando: espera a que termine o páralo")
+        args = ["aplicar", "--titulo", titulo]
+    elif op == "deshacer":
+        commit = str(body.get("commit") or "")
+        if not COMMIT_RE.match(commit):
+            raise HTTPException(422, "commit no válido")
+        args = ["deshacer", commit]
+    elif op == "actualizar":
+        v = body.get("version")
+        if v is not None and not VERSION_RE.match(str(v)):
+            raise HTTPException(422, "versión no válida")
+        args = ["actualizar"] + (["--version", str(v)] if v else [])
+    elif op == "restaurar":
+        copia = str(body.get("copia") or "")
+        if not COPIA_RE.match(copia):
+            raise HTTPException(422, "copia no válida")
+        args = ["restaurar", copia] + (["--vault"] if body.get("vault") else [])
+    else:
+        raise HTTPException(404, "operación desconocida")
+    _ocupado_cambios()
+    _audit(request, f"cambios.{op}", "ok", args=args[1:])
+    _systemd_run("cambios", "supervisor.py", *args)
+    return {"ok": True, "op": op}
+
+
+@app.get("/v1/constructor", dependencies=[Depends(auth)])
+def constructor_estado():
+    return {"personalizacion": _sin_secretos(_personalizacion()), "vista_previa": _unidad_activa("vista-previa"),
+            "preparando": _unidad_activa("vp-preparar"), "trabajando": _unidad_activa("constructor"),
+            "cambios": _unidad_activa("cambios"), "bwrap": shutil.which("bwrap") is not None}
+
+
+@app.post("/v1/constructor/abrir", dependencies=[Depends(auth)])
+def constructor_abrir(request: Request, body: dict = Body(...)):
+    """Prepara la copia del código y la vista previa de una conversación del Constructor (una sola a la vez)."""
+    conv = str(body.get("conversacion") or "")
+    version = body.get("version")
+    if not UUID_RE.match(conv) or (version is not None and not VERSION_RE.match(str(version))):
+        raise HTTPException(422, "petición no válida")
+    if shutil.which("bwrap") is None:
+        raise HTTPException(503, "Falta bubblewrap (bwrap) en este PC: el Constructor lo necesita para trabajar encerrado")
+    _ocupado_cambios()
+    with _reserva_lock:  # la reserva se escribe aquí, en el acto: dos peticiones a la vez no abren dos vistas previas
+        p = _personalizacion()
+        if p and p.get("conversacion") != conv:
+            raise HTTPException(409, "Ya hay una personalización abierta: aplícala o descártala antes de empezar otra")
+        if not p:
+            CONSTR_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+            f = CONSTR_DIR / "personalizacion.json"
+            tmp = f.with_name(".personalizacion.json.tmp")
+            tmp.write_text(json.dumps({"conversacion": conv, "estado": "preparando", "paso": "Empezando",
+                                       "creada": datetime.now(timezone.utc).isoformat(timespec="seconds")}))
+            tmp.chmod(0o600)
+            tmp.replace(f)
+    if _unidad_activa("vp-preparar"):
+        return {"ok": True, "preparando": True}
+    _audit(request, "constructor.abrir", "ok", conversacion=conv, version=version)
+    _systemd_run("vp-preparar", "vista_previa.py", "abrir", conv, *(["--version", f"v{str(version).lstrip('v')}"] if version else []))
+    return {"ok": True, "preparando": True}
+
+
+@app.post("/v1/constructor/arrancar", dependencies=[Depends(auth)])
+def constructor_arrancar(request: Request):
+    """Despierta la vista previa (o la arranca tras resolver una actualización)."""
+    if _personalizacion() is None:
+        raise HTTPException(404, "No hay ninguna personalización abierta")
+    if _unidad_activa("vista-previa") or _unidad_activa("vp-preparar"):
+        return {"ok": True}
+    _audit(request, "constructor.arrancar", "ok")
+    _systemd_run("vp-preparar", "vista_previa.py", "arrancar")
+    return {"ok": True}
+
+
+@app.post("/v1/constructor/cerrar", dependencies=[Depends(auth)])
+def constructor_cerrar(request: Request, body: dict = Body(default_factory=dict)):
+    """Descarta la personalización abierta: para la vista previa y el Constructor y borra la copia y sus datos."""
+    _ocupado_cambios()
+    motivo = "aplicada" if body.get("motivo") == "aplicada" else "descartada"
+    _audit(request, "constructor.cerrar", "ok", motivo=motivo)
+    r = subprocess.run([sys.executable, str(CAMBIOS_DIR / "vista_previa.py"), "cerrar", "--motivo", motivo],
+                       capture_output=True, text=True, timeout=180, env={**os.environ, "POS_INSTANCE": INST}, cwd=ROOT)
+    if r.returncode != 0:
+        raise HTTPException(500, r.stderr.strip()[-300:] or "error")
+    return {"ok": True}
+
+
+@app.post("/v1/constructor/turno", dependencies=[Depends(auth)])
+def constructor_turno(request: Request, body: dict = Body(...)):
+    """Un turno del Constructor (constructor.py en su unidad). La salida va a data/constructor/turnos/<run>.ndjson."""
+    run_id = str(body.get("run_id") or "")
+    prov = str(body.get("proveedor") or "claude")
+    if not UUID_RE.match(run_id) or prov not in PROV_CONSTRUCTOR:
+        raise HTTPException(422, "petición no válida")
+    try:
+        modelo = proveedores.valida_modelo(prov, str(body.get("modelo") or ""))
+        resume = proveedores.valida_resume(prov, body.get("resume"))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    prompt = str(body.get("prompt") or "")
+    if not prompt.strip() or len(prompt) > 60_000:
+        raise HTTPException(422, "mensaje vacío o demasiado largo")
+    if _personalizacion() is None:
+        raise HTTPException(409, "No hay ninguna personalización abierta")
+    if _unidad_activa("constructor"):
+        raise HTTPException(409, "El Constructor ya está trabajando")
+    _ocupado_cambios()
+    turnos = CONSTR_DIR / "turnos"
+    turnos.mkdir(parents=True, exist_ok=True, mode=0o700)
+    f = turnos / f"{run_id}.json"
+    f.write_text(json.dumps({"run_id": run_id, "prompt": prompt, "proveedor": prov, "modelo": modelo, "resume": resume},
+                            ensure_ascii=False))
+    f.chmod(0o600)
+    _audit(request, "constructor.turno", "ok", run=run_id, provider=prov, model=modelo)
+    _systemd_run("constructor", "constructor.py", "turno", run_id)
+    return {"ok": True}
+
+
+@app.post("/v1/constructor/parar", dependencies=[Depends(auth)])
+def constructor_parar(request: Request):
+    _audit(request, "constructor.parar", "ok")
+    subprocess.run(["systemctl", "--user", "stop", f"{_unidad('constructor')}.service"], capture_output=True, timeout=60)
+    return {"ok": True}
 
 
 # ---------- extensiones locales (host-agent/privado/, no se publica) ----------

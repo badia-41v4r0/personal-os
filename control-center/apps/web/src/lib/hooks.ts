@@ -1,5 +1,6 @@
 "use client";
 
+import { BASE } from "./base";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api";
 
@@ -75,7 +76,7 @@ export function useEvents(onEvent: (e: BusEvent) => void) {
 
     const connect = () => {
       const proto = location.protocol === "https:" ? "wss" : "ws";
-      ws = new WebSocket(`${proto}://${location.host}/api/v1/ws?after=${last.current}`);
+      ws = new WebSocket(`${proto}://${location.host}${BASE}/api/v1/ws?after=${last.current}`);
       ws.onopen = () => {
         failures = 0;
         setMode("ws");

@@ -68,7 +68,9 @@ def settings(tmp_path: Path):
     (tmp_path / "agents").mkdir()
     s = config.Settings(data_dir=tmp_path / "data", vault=tmp_path / "vault", jarvis_projects=proj, agents_dir=tmp_path / "agents", sessions_dir=tmp_path / "sesiones", files_dir=tmp_path / "archivos",
                         hostagent_socket=tmp_path / "nohay.sock", hostagent_token="x" * 40,
-                        allowed_origins=(ORIGIN,), cookie_secure=False)
+                        allowed_origins=(ORIGIN,), cookie_secure=False,
+                        # nunca el estado real del Constructor ni del supervisor de la instalación en la que se ejecutan
+                        cambios_dir=tmp_path / "cambios", constructor_dir=tmp_path / "constructor")
     config.set_settings(s)
     db.reset_engine()
     if s.db_url:  # base compartida entre pruebas: se vacía antes de cada una

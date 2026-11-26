@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { api, post } from "@/lib/api";
 import { bytes, clock, timeAgo } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
+import { BASE } from "@/lib/base";
 
 type Live = { state: string; status: string; stats?: { cpu_pct: number; mem: string; mem_pct: number; pids: number } | null } | null;
 type VC = { id: string; name: string; profile: "terminal" | "browser" | "desktop" | "canvas"; owner_agent: string | null; persistence: string; expires_at: string | null; internet: boolean; status: string; limits: { cpus: number; memory_mb: number; disk_mb: number }; created_by: string; created_at: string; last_activity: string; live: Live };
@@ -115,7 +116,7 @@ function Files({ id }: { id: string }) {
               : <span className="flex min-w-0 items-center gap-2"><FileText className="size-3.5 shrink-0" /><span className="truncate">{f.name}</span></span>}
             {!f.dir && (
               <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">{bytes(f.size)}
-                <a href={`/api/v1/virtual-computers/${id}/download?path=${encodeURIComponent(`${path}/${f.name}`)}`} className="hover:text-primary" aria-label={`Descargar ${f.name}`}><Download className="size-3.5" /></a>
+                <a href={`${BASE}/api/v1/virtual-computers/${id}/download?path=${encodeURIComponent(`${path}/${f.name}`)}`} className="hover:text-primary" aria-label={`Descargar ${f.name}`}><Download className="size-3.5" /></a>
               </span>
             )}
           </li>
@@ -170,7 +171,7 @@ function DetailView({ id }: { id: string }) {
             <Button variant="ghost" size="sm" onClick={() => router.push("/ajustes/ordenadores/")}><ArrowLeft /> Ordenadores</Button>
             {running ? <Button size="sm" variant="outline" onClick={() => act("stop")}><Square /> Detener</Button> : <Button size="sm" variant="outline" onClick={() => act("start")}><Play /> Iniciar</Button>}
             {running && <Button size="sm" variant="outline" onClick={() => act("restart")}><RotateCw /> Reiniciar</Button>}
-            {running && v.profile !== "terminal" && <a href={`/api/v1/virtual-computers/${id}/screenshot`} target="_blank" rel="noopener" className="inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[0.8rem] ring-1 ring-border hover:bg-muted"><Camera className="size-3.5" /> Captura</a>}
+            {running && v.profile !== "terminal" && <a href={`${BASE}/api/v1/virtual-computers/${id}/screenshot`} target="_blank" rel="noopener" className="inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[0.8rem] ring-1 ring-border hover:bg-muted"><Camera className="size-3.5" /> Captura</a>}
             <Button size="sm" variant="destructive" onClick={remove}><Trash2 /> Eliminar</Button>
           </div>
         } />

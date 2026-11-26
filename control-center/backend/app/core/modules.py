@@ -87,6 +87,9 @@ MODULES: dict[str, Module] = {m.id: m for m in (
     Module("ordenadores", "Ordenadores virtuales", "Contenedores con terminal, navegador o escritorio para los agentes.",
            web=("/ajustes/ordenadores/",), api=("/api/v1/virtual-computers",)),
     Module("voz", "Voz en el PC", "«Hey {{asistente}}» con el micrófono del PC y respuesta hablada (local).", timers=()),
+    Module("constructor", "Constructor", "Personaliza el panel hablando: cambia o añade apartados, con vista previa antes de "
+           "aplicar y vuelta atrás si algo falla.", por_defecto=True,
+           api=("/api/v1/constructor",), asistentes=("constructor",)),
     Module("telegram", "Avisos por Telegram", "Copia de las alertas críticas a un bot de Telegram (solo salida).",
            integraciones=("telegram",)),
 )}

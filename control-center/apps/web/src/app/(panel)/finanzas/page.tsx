@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { post, upload } from "@/lib/api";
 import { timeAgo } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
+import { BASE } from "@/lib/base";
 
 type Account = { id: number; name: string; kind: string; balance: string; currency: string };
 type Summary = {
@@ -323,7 +324,7 @@ export default function FinanzasPage() {
   };
   return (
     <>
-      <PageHeader title="Finanzas" description="Cada movimiento cuadra con tu banco." actions={<a href="/api/v1/finance/export.beancount" className="-my-1 py-1 text-xs text-primary hover:underline">Exportar</a>} />
+      <PageHeader title="Finanzas" description="Cada movimiento cuadra con tu banco." actions={<a href={`${BASE}/api/v1/finance/export.beancount`} className="-my-1 py-1 text-xs text-primary hover:underline">Exportar</a>} />
       {s.error && <ErrorState message={s.error} />}
       {a.ErrorBox}
       {s.loading && <Loading rows={5} />}

@@ -100,7 +100,19 @@ nace como propuesta y lo confirmas tú.
 | Conexiones | Google, GitHub, campus, Hevy, Telegram y los avisos en el móvil: estado de cada una y cómo conectarla |
 | Automatizaciones | Horario de las rutinas (briefing, cierre, revisión semanal, recopilación) |
 | Autonomía | Pausar todos los agentes y comprobar la auditoría |
+| Versiones | Actualizar Personal OS, deshacer personalizaciones del Constructor y restaurar copias de seguridad |
 | Avanzado | Agentes, Conversaciones, Ordenadores virtuales, Sistema, Monitor, Colas y temporizadores, Auditoría |
+
+## Personalizar el panel (Constructor)
+
+En el chat, elige **Constructor** y cuéntale qué quieres cambiar o añadir («un apartado para mis plantas», «el Inicio
+con otro orden»…). Prepara una copia de tu panel (la primera vez tarda unos minutos), hace el cambio y te enseña dónde
+verlo en la **vista previa** (botón «Ver vista previa», o `/vista-previa/`). La vista previa usa una copia de tus datos:
+lo que hagas en ella no se guarda. Pídele ajustes las veces que quieras y, cuando te guste, pulsa **Aplicar cambios**
+(en el chat o en la franja amarilla de la vista previa): se hace una copia de seguridad, se aplica y el panel se
+reinicia; si algo falla, vuelve solo a como estaba. **Descartar** tira la copia sin tocar tu panel.
+
+Solo puede haber una personalización abierta a la vez. Lo aplicado se puede deshacer en Ajustes → Versiones.
 
 ## Onboarding de cada apartado
 

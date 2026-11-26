@@ -55,6 +55,13 @@ class Settings:
     # En producción (detrás de Tailscale Serve con HTTPS) la cookie es Secure. Solo se desactiva en desarrollo local.
     cookie_secure: bool = field(default_factory=lambda: _env("CC_COOKIE_SECURE", "1") == "1")
     session_hours: int = field(default_factory=lambda: int(_env("CC_SESSION_HOURS", "168")))
+    # Supervisor de cambios y Constructor (control-center/cambios/): estado que dejan sus procesos, fuera del panel
+    cambios_dir: Path = field(default_factory=lambda: Path(_env("CC_CAMBIOS_DIR", str(ROOT / "data/cambios"))))
+    constructor_dir: Path = field(default_factory=lambda: Path(_env("CC_CONSTRUCTOR_DIR", str(ROOT / "data/constructor"))))
+    # Este proceso ES una vista previa (control-center/cambios/vista_previa.py): sin bucles de fondo ni efectos hacia fuera.
+    # Su token solo lo conoce el panel real, que es quien le pasa las peticiones (app/vista_previa.py).
+    vista_previa: bool = field(default_factory=lambda: _env("CC_VISTA_PREVIA", "0") == "1")
+    vista_previa_token: str = field(default_factory=lambda: _env("CC_VISTA_PREVIA_TOKEN", ""))
     login_max_fails: int = 5
     login_lock_minutes: int = 15
 

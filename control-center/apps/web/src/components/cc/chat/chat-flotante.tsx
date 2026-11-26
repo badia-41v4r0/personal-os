@@ -15,8 +15,15 @@ import { useConversacion } from "./datos";
 import { describirLinea } from "./pasos";
 import { Vista } from "./vista";
 import { AvatarAsistente } from "../avatar-asistente";
+import { EN_VISTA_PREVIA } from "@/lib/base";
+import { BarraConstructor } from "./constructor";
 
 const GUARDADO = "pos.chat.conversaciones";
+
+/** Abre el chat en una conversación concreta (p. ej. la del Constructor que junta una actualización). */
+export function abrirConversacion(asistente: string, id: string) {
+  window.dispatchEvent(new CustomEvent("cc:chat-ir", { detail: { asistente, id } }));
+}
 
 /** Pídele algo a un asistente desde cualquier pantalla: abre el chat con una conversación nueva y lo envía. */
 export function preguntarAlChat(asistente: string, texto: string) {
@@ -81,7 +88,9 @@ export function ChatFlotante() {
   const path = usePathname();
   const router = useRouter();
   const { inst, lastEvent } = usePanel();
-  const disponibles = useMemo(() => ASISTENTES.filter((x) => visible(inst, x.ruta)).map((x) => x.asistente), [inst]);
+  // El Constructor, solo si su módulo está activo, y nunca dentro de su propia vista previa
+  const disponibles = useMemo(() => ASISTENTES.filter((x) => (x.modulo ? !EN_VISTA_PREVIA && !!inst?.modulos.find((m) => m.id === x.modulo)?.activo : visible(inst, x.ruta)))
+    .map((x) => x.asistente), [inst]);
   const [clave, setClave] = useState(() => claveChat(assistantFor(path)));
   const [abierto, setAbierto] = useState(false);
   const [lado, setLado] = useState(false); // historial en el móvil
@@ -181,13 +190,21 @@ export function ChatFlotante() {
       setClave(k);
       void enviarA(k, null, texto, []);
     };
+    const ir = (e: Event) => {
+      const { asistente: k, id } = (e as CustomEvent<{ asistente: string; id: string }>).detail;
+      setClave(k);
+      elegir(k, id);
+      abrir();
+    };
     window.addEventListener("cc:open-dock", abrir);
     window.addEventListener("cc:chat-preguntar", preguntar);
+    window.addEventListener("cc:chat-ir", ir);
     return () => {
       window.removeEventListener("cc:open-dock", abrir);
       window.removeEventListener("cc:chat-preguntar", preguntar);
+      window.removeEventListener("cc:chat-ir", ir);
     };
-  }, [enviarA, abrir]);
+  }, [enviarA, abrir, elegir]);
 
   // Esc pliega; Ctrl/⌘ + J abre y pliega
   useEffect(() => {
@@ -352,6 +369,7 @@ export function ChatFlotante() {
                 onSugerencia={(t) => void enviar(t, [])} />
             )}
             <div className="mx-auto w-full max-w-3xl shrink-0 px-3 pb-3 lg:px-4 lg:pb-4">
+              {clave === "constructor" && <BarraConstructor cid={cid} onIr={(id) => elegir(clave, id)} onError={setError} />}
               {error && <p role="alert" className="mb-2 text-xs text-destructive">{error}</p>}
               <Compositor ref={panel} placeholder={`Escribe a ${asistente.name}…`} ocupada={enCurso} onEnviar={enviar} onParar={parar} onError={setError} />
               <p className="mt-1.5 hidden text-center text-[11px] text-muted-foreground lg:block">Intro para enviar · Mayús+Intro, salto de línea · Esc para plegar</p>

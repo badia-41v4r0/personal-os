@@ -1,6 +1,8 @@
 // Cliente de la API del backend. Mismo origen: la cookie de sesión (HttpOnly) viaja sola;
 // el token CSRF se guarda solo en memoria y se manda en las peticiones con efecto.
 
+import { BASE } from "./base";
+
 let csrf: string | null = null;
 
 export class ApiError extends Error {
@@ -18,8 +20,9 @@ export async function api<T = unknown>(path: string, init: RequestInit = {}): Pr
   const headers = new Headers(init.headers);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   if (method !== "GET" && csrf) headers.set("X-CSRF-Token", csrf);
-  const res = await fetch(`/api/v1${path}`, { ...init, method, headers, credentials: "same-origin", cache: "no-store" });
+  const res = await fetch(`${BASE}/api/v1${path}`, { ...init, method, headers, credentials: "same-origin", cache: "no-store" });
   if (res.status === 401 && typeof window !== "undefined" && !path.startsWith("/auth/")) {
+    // Siempre el login del panel real: en la vista previa la sesión es la suya (allí no se puede guardar la cookie)
     window.location.href = "/login/";
   }
   if (!res.ok) {

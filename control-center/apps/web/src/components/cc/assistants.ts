@@ -1,4 +1,4 @@
-import { Brain, BriefcaseBusiness, CalendarCheck, CalendarDays, CheckSquare, Clapperboard, Compass, Dumbbell, GraduationCap, Heart, HeartPulse, Landmark, Lightbulb, Plane, Popcorn, Search, Target, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
+import { Brain, BriefcaseBusiness, Hammer, LayoutDashboard, Palette, CalendarCheck, CalendarDays, CheckSquare, Clapperboard, Compass, Dumbbell, GraduationCap, Heart, HeartPulse, Landmark, Lightbulb, Plane, Popcorn, Search, Target, TrendingUp, Wallet, type LucideIcon } from "lucide-react";
 import { asistente } from "@/lib/asistente";
 
 export type Quick = { label: string; icon: LucideIcon; text: string };
@@ -26,6 +26,7 @@ const AVATAR: Record<string, { icon: LucideIcon; tono: string }> = {
   estilo: { icon: Compass, tono: "bg-teal-500/15 text-teal-600 dark:text-teal-300" },
   ocio: { icon: Clapperboard, tono: "bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-300" },
   conocimiento: { icon: Brain, tono: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300" },
+  constructor: { icon: Hammer, tono: "bg-slate-500/15 text-slate-700 dark:text-slate-200" },
 };
 
 const organizacion = a("agenda", "Organización", "Agenda y tareas", [
@@ -64,10 +65,18 @@ export function assistantFor(path: string): Assistant {
 /** Clave del asistente en las conversaciones del chat (el general es «jarvis»). */
 export const claveChat = (a: Assistant) => a.key ?? "jarvis";
 
-/** Todos los asistentes del chat, sin repetir, con la ruta de su apartado (para saber si su módulo está activo). */
-export const ASISTENTES: { asistente: Assistant; ruta: string }[] = [
+/** Personaliza el propio panel (módulo «constructor»), con vista previa antes de aplicar. */
+export const CONSTRUCTOR = a("constructor", "Constructor", "Personaliza tu panel", [
+  { label: "Ideas de apartados", icon: LayoutDashboard, text: "Según lo que uso del panel, ¿qué apartado nuevo me recomiendas añadir? Dame tres ideas y pregúntame cuál hacemos." },
+  { label: "Cambiar el aspecto", icon: Palette, text: "Quiero cambiar el aspecto del panel. Pregúntame qué me gustaría y enséñame opciones." },
+  { label: "Qué puedo personalizar", icon: Lightbulb, text: "¿Qué cosas del panel me puedes cambiar o añadir? Dame ideas según lo que uso." },
+]);
+
+/** Todos los asistentes del chat, sin repetir, con la ruta de su apartado (para saber si su módulo está activo) o su módulo. */
+export const ASISTENTES: { asistente: Assistant; ruta: string; modulo?: string }[] = [
   { asistente: main, ruta: "/" },
   ...SECTIONS.filter(([, a], i) => SECTIONS.findIndex(([, b]) => b.key === a.key) === i).map(([ruta, asistente]) => ({ asistente, ruta: `${ruta}/` })),
+  { asistente: CONSTRUCTOR, ruta: "/", modulo: "constructor" },
 ];
 
 export const asistentePorClave = (k: string): Assistant => ASISTENTES.find((x) => claveChat(x.asistente) === k)?.asistente ?? main;

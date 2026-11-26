@@ -14,6 +14,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
 from fastapi import Depends, HTTPException, Request, WebSocket
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .config import get_settings
@@ -135,10 +136,36 @@ class Principal:
         return self.user.username
 
 
+VP_HEADER, VP_USER, VP_CSRF = "x-pos-vista-previa", "x-pos-usuario", "x-pos-csrf"
+
+
+def adoptar_sesion_vista_previa(db: Session, headers, token: str | None) -> AuthSession | None:
+    """Solo en una vista previa del Constructor: el panel real ya comprobó la sesión del usuario y la pasa con el token
+    de la vista previa. Si la copia de la base no la tiene (se abrió después de copiarla), se crea aquí igual que la real
+    (mismo token y mismo CSRF), así el usuario no tiene que volver a entrar ni pierde la sesión del panel real."""
+    s = get_settings()
+    if not (s.vista_previa and s.vista_previa_token and token):
+        return None
+    if not hmac.compare_digest(headers.get(VP_HEADER, ""), s.vista_previa_token):
+        return None
+    user = db.scalar(select(User).where(User.username == headers.get(VP_USER, "")))
+    if user is None:
+        return None
+    sess = AuthSession(user_id=user.id, token_hash=_sha(token), csrf_token=headers.get(VP_CSRF, "") or secrets.token_urlsafe(32),
+                       expires_at=utcnow() + timedelta(hours=s.session_hours), user_agent="vista previa", ip="127.0.0.1")
+    db.add(sess)
+    try:
+        db.commit()
+    except IntegrityError:  # al abrir la página llegan varias peticiones a la vez: otra ya la ha creado
+        db.rollback()
+        return lookup_session(db, token)
+    return sess
+
+
 def current_principal(request: Request) -> Principal:
     """Conexión breve: se comprueba la sesión y se suelta antes de que el endpoint haga su trabajo."""
     with session_scope() as db:
-        sess = lookup_session(db, request.cookies.get(COOKIE))
+        sess = lookup_session(db, request.cookies.get(COOKIE)) or adoptar_sesion_vista_previa(db, request.headers, request.cookies.get(COOKIE))
         if sess is None:
             raise HTTPException(401, "No autenticado")
         if request.method not in SAFE_METHODS:
@@ -180,7 +207,7 @@ def websocket_principal(ws: WebSocket, db: Session) -> Principal | None:
     """Para WebSocket: exige Origin permitido y cookie de sesión válida."""
     if not origin_ok(ws.headers.get("origin")):
         return None
-    sess = lookup_session(db, ws.cookies.get(COOKIE))
+    sess = lookup_session(db, ws.cookies.get(COOKIE)) or adoptar_sesion_vista_previa(db, ws.headers, ws.cookies.get(COOKIE))
     if sess is None:
         return None
     return Principal(db.get(User, sess.user_id), sess)

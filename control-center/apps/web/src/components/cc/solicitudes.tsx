@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { api, post, upload } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
+import { BASE } from "@/lib/base";
 
 export type Doc = { id: number; nombre: string; tipo: string; sha256: string; idioma: string; tamano: number; activo: boolean; texto: boolean };
 type Campo = { ref: string; etiqueta: string; tipo: string; obligatorio: boolean; valor: string | boolean | string[]; rellenado_por_el_agente: boolean };
@@ -104,7 +105,7 @@ export function DocumentosCard({ docs, reload }: { docs: Doc[]; reload: () => vo
         <ul className="divide-y divide-border">
           {docs.filter((d) => d.activo).map((d) => (
             <li key={d.id} className="flex items-center gap-2 py-2 text-sm">
-              <a className="min-w-0 flex-1 truncate font-medium hover:underline" href={`/api/v1/me/career/documents/${d.id}/file`}>{d.nombre}</a>
+              <a className="min-w-0 flex-1 truncate font-medium hover:underline" href={`${BASE}/api/v1/me/career/documents/${d.id}/file`}>{d.nombre}</a>
               <span className="font-mono text-xs text-muted-foreground" title={d.sha256}>{d.sha256.slice(0, 10)}</span>
               <Button size="sm" variant="ghost" onClick={() => void a.run(() => post(`/me/career/documents/${d.id}/archive`))}>Archivar</Button>
             </li>
@@ -155,7 +156,7 @@ export function Revision({ run, reload }: { run: Run; reload: () => void }) {
           <p className="text-xs">Botón que se pulsará: <strong>{r.boton.texto || r.boton.ref}</strong> · CV <span className="font-mono">{run.documento.slice(0, 10)}</span></p>
           {run.capturas > 0 && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={`/api/v1/me/career/runs/${run.id}/screenshot/0`} alt="Captura del formulario rellenado" className="w-full rounded border border-border" />
+            <img src={`${BASE}/api/v1/me/career/runs/${run.id}/screenshot/0`} alt="Captura del formulario rellenado" className="w-full rounded border border-border" />
           )}
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => void decidir(true)} disabled={a.busy}>Aprobar y enviar</Button>

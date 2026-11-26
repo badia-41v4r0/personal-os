@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api, post } from "@/lib/api";
 import { clock } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
+import { BASE } from "@/lib/base";
 
 type Msg = { id: number; role: "user" | "assistant" | "tool" | "system"; content: string; run_id: string | null; created_at: string };
 type WFile = { name: string; path: string; dir: boolean; size: number; mtime: number };
@@ -188,7 +189,7 @@ export function IndependentChat({ session, onChanged }: { session: SessionSummar
             {files.data?.items.map((f) => (
               <li key={f.path} className="flex min-w-0 items-center justify-between gap-2">
                 {f.dir ? <button onClick={() => setDir(f.path)} className="flex min-w-0 items-center gap-1.5 py-0.5 hover:text-primary"><Folder className="size-3 shrink-0" /><span className="truncate">{f.name}</span></button>
-                  : <a href={`/api/v1/sessions/${sid}/download?path=${encodeURIComponent(f.path)}`} className="flex min-w-0 items-center gap-1.5 py-0.5 hover:text-primary" title="Descargar"><Download className="size-3 shrink-0" /><span className="truncate">{f.name}</span></a>}
+                  : <a href={`${BASE}/api/v1/sessions/${sid}/download?path=${encodeURIComponent(f.path)}`} className="flex min-w-0 items-center gap-1.5 py-0.5 hover:text-primary" title="Descargar"><Download className="size-3 shrink-0" /><span className="truncate">{f.name}</span></a>}
                 {!f.dir && <span className="shrink-0 text-muted-foreground">{f.size < 1024 ? `${f.size} B` : `${(f.size / 1024).toFixed(0)} KB`}</span>}
               </li>
             ))}

@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api, post } from "@/lib/api";
 import { timeAgo } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
+import { BASE } from "@/lib/base";
 
 type Vm = { vbox: string; uuid: string; estado: string; conectada: string | null };
 type Maquina = { id: string; nombre: string; vbox: string; usuario: string; puerto: number; agentes: string[]; notas: string; pendiente: boolean; estado: string; comprobado: string | null };
@@ -186,7 +187,7 @@ function Pantalla({ id }: { id: string }) {
   useEffect(() => { const i = setInterval(() => setT(Date.now()), 4000); return () => clearInterval(i); }, []);
   if (error) return <p className="text-xs text-muted-foreground">No se pudo capturar la pantalla (¿está encendida?).</p>;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={`/api/v1/maquinas/${id}/captura?t=${t}`} alt="Pantalla de la máquina" className="w-full rounded-md border border-border" onError={() => setError(true)} />;
+  return <img src={`${BASE}/api/v1/maquinas/${id}/captura?t=${t}`} alt="Pantalla de la máquina" className="w-full rounded-md border border-border" onError={() => setError(true)} />;
 }
 
 function Tarjeta({ m, agentes, onReload, onContinuar }: { m: Maquina; agentes: Agente[]; onReload: () => void; onContinuar: () => void }) {

@@ -10,7 +10,7 @@
 #   bin/pos contraseña [USUARIO]                 cambiar la contraseña del panel (si la olvidaste)
 #   bin/pos postgres           pasar de SQLite a PostgreSQL (búsqueda semántica)
 #   bin/pos voz                arrancar Whisper para la voz y los vídeos
-#   bin/pos actualizar         recompila y reinicia (no toca tus datos)
+#   bin/pos actualizar         recompila y reinicia con copia de seguridad (no toca tus datos; desde el panel: Ajustes → Versiones)
 #   bin/pos desinstalar [--borrar-datos]
 #
 # El resto de scripts de bin/ los usa el sistema (servicios, contenedores): no hace falta llamarlos a mano.
@@ -71,6 +71,7 @@ comprobar_requisitos() {
   local nv; nv=$(node -v 2>/dev/null | tr -d v || echo 0)
   version_ge "$nv" 20 && ok "Node $nv" || { fallo "Hace falta Node 20 o más"; faltan=1; }
   command -v git >/dev/null && ok "git" || { fallo "Falta git"; faltan=1; }
+  command -v bwrap >/dev/null && ok "bubblewrap (Constructor y vista previa)" || aviso "Sin bubblewrap (bwrap): el Constructor no podrá personalizar el panel"
   command -v ss >/dev/null || aviso "Sin «ss»: no puedo comprobar si el puerto está libre"
   # Opcionales
   for c in claude codex opencode antigravity; do command -v "$c" >/dev/null && ok "CLI $c (motor de IA)"; done
@@ -133,6 +134,7 @@ instalar() {
   poner_env "$ENVF" POS_TZ "$tz"
   poner_env "$ENVF" POS_PORT "$port"
   poner_env "$ENVF" POS_DB_PORT "$dbport"
+  poner_env "$ENVF" POS_PATH "$PATH"  # el supervisor de cambios lo usa para encontrar uv y node sin terminal
   grep -q '^CLAUDE_CODE_OAUTH_TOKEN=' "$ENVF" 2>/dev/null || poner_env "$ENVF" CLAUDE_CODE_OAUTH_TOKEN ""
   [ -n "$(leer_env "$SEC" CC_HOSTAGENT_TOKEN)" ] || poner_env "$SEC" CC_HOSTAGENT_TOKEN "$(aleatorio)"
   [ -n "$(leer_env "$SEC" CC_BACKUP_KEY)" ] || poner_env "$SEC" CC_BACKUP_KEY "$(python3 -c 'import secrets;print(secrets.token_urlsafe(32))')"
@@ -223,19 +225,21 @@ comprobar() {
 }
 
 actualizar() {
+  # Mismo camino que el botón del panel (control-center/cambios/supervisor.py): copia de seguridad de la base, la vault y la
+  # configuración; web compilada aparte y cambiada de golpe; si el panel no responde tras reiniciar, vuelve a la web y a
+  # la base de antes. El código no se toca: es el que tengas en esta carpeta.
+  local inst; inst="$(instancia_actual)"
+  poner_env "$ROOT/.env" POS_PATH "$PATH"  # uv, node… para cuando el panel actualice solo (sin terminal)
+  (cd "$CC/backend" && uv sync --frozen) >/dev/null
+  "$CC/backend/.venv/bin/python" "$ROOT/control-center/cambios/supervisor.py" desplegar --primer-plano \
+    || muere "No se ha podido actualizar. Detalles: data/cambios/registros/ (la copia de seguridad está en data/cambios/copias/)"
+  ok "Actualizado"
+}
+
+unidades_internas() {  # la usa el supervisor de cambios tras cambiar el código
   local inst port tz; inst="$(instancia_actual)"; port="$(leer_env "$ROOT/.env" POS_PORT)"; tz="$(leer_env "$ROOT/.env" POS_TZ)"
-  (set -a && . "$ROOT/data/control-center/secrets.env" && set +a && POS_INSTANCE="$inst" POS_TZ="$tz" \
-    "$CC/backend/.venv/bin/python" "$CC/deployment/backup.py") >/dev/null 2>&1 && ok "Copia de la base antes de actualizar" \
-    || aviso "No pude hacer la copia previa (sigo: la copia nocturna está en data/control-center/backups/)"
-  (cd "$CC/backend" && uv sync --frozen)
-  (cd "$CC/backend" && set -a && . "$ROOT/data/control-center/secrets.env" && set +a && .venv/bin/alembic upgrade head) && ok "Base de datos al día" \
-    || muere "No se pudo actualizar la base de datos: no reinicio nada (la copia previa está en data/control-center/backups/)"
-  (cd "$CC/apps/web" && npm ci --no-fund --no-audit && npm run build)
-  docker build -t "$inst:local" --build-arg "TZ=$tz" "$ROOT"
   render_unidades "$inst" "$port" "$tz" "$UNITS"
   systemctl --user daemon-reload
-  systemctl --user restart "$inst-cc-hostagent.service" "$inst-cc-backend.service"
-  ok "Actualizado"
 }
 
 desinstalar() {
@@ -301,6 +305,7 @@ case "${1:-}" in
   postgres) "$CC/deployment/pasar-a-postgres.sh" ;;
   voz) voz ;;
   actualizar) actualizar ;;
+  _unidades) unidades_internas ;;
   desinstalar) shift; desinstalar "$@" ;;
   ayuda|-h|--help) ayuda ;;
   *) ayuda; exit 1 ;;

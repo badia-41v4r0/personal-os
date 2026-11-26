@@ -15,3 +15,4 @@ control-center/apps/web/out/
 control-center/apps/web/test-results/
 control-center/apps/web/playwright-report/
 .claude/worktrees/
+control-center/apps/web/out-*/

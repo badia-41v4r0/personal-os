@@ -9,10 +9,10 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from .adapters import hostagent
-from .config import ROOT
+from .config import ROOT, get_settings
 from .security import COOKIE, actor_name
 
-from . import claude_usage, events, extensiones, main_session, model_usage, monitor, rutas_viejas, sessions, vcs
+from . import cambios, claude_usage, constructor, events, extensiones, main_session, model_usage, monitor, rutas_viejas, sessions, vcs
 from .api.routes import router
 from .core import actions, assistants, gateway, memory, notifications
 from .modules import agent_caps  # noqa: F401  (registra capacidades y lecturas)
@@ -41,6 +41,7 @@ from .projects import router as projects_router
 from .claude_usage import router as usage_router
 from .model_usage import router as model_usage_router
 from .instancia import router as instancia_router
+from .vista_previa import router as vista_previa_router
 from .core import modules
 
 
@@ -48,11 +49,14 @@ from .core import modules
 async def lifespan(_: FastAPI):
     events.bind_loop(asyncio.get_running_loop())
     events.publish("backend.started")
-    main_session.start()
+    vista_previa = get_settings().vista_previa  # vista previa del Constructor: nada que actúe hacia fuera
+    if not vista_previa:
+        main_session.start()
     sessions.recover()
-    notify_task = asyncio.create_task(notifications.loop())
+    constructor.recover()
+    notify_task = asyncio.create_task(notifications.loop()) if not vista_previa else asyncio.create_task(asyncio.sleep(0))
     vc_task = None
-    if os.environ.get("CC_MONITOR", "1") == "1":
+    if os.environ.get("CC_MONITOR", "1") == "1" and not vista_previa:
         monitor.start()
         vc_task = asyncio.create_task(vcs.loop())
         usage_task = asyncio.create_task(claude_usage.loop())
@@ -67,10 +71,13 @@ async def lifespan(_: FastAPI):
     await main_session.stop()
 
 
-app = FastAPI(title="Personal OS", version="0.1.0", lifespan=lifespan,
+app = FastAPI(title="Personal OS", version=(ROOT / "VERSION").read_text().strip() if (ROOT / "VERSION").exists() else "0", lifespan=lifespan,
               docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(router)
 app.include_router(instancia_router)
+app.include_router(cambios.router)
+app.include_router(constructor.router)
+app.include_router(vista_previa_router)  # /vista-previa/: antes que la web estática
 app.include_router(gym_router)
 app.include_router(gym_plan_router)
 app.include_router(vault_router)

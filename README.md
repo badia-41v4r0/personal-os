@@ -21,6 +21,11 @@ máquina; el modelo de IA solo ve lo que necesita en cada turno.
 - **Onboarding guiado:** la primera vez que abres un apartado, su asistente te ayuda a configurarlo. Nada se guarda
   sin tu aprobación. El de Educación puede abrir tu campus virtual en un navegador aislado y leer asignaturas,
   entregas y calendario por ti.
+- **Constructor:** personaliza el propio panel hablando con él desde el chat (un apartado nuevo, otro aspecto, un
+  agente…). Lo ves funcionando en una vista previa con una copia de tus datos y, si te gusta, lo aplicas. Antes se hace
+  una copia de seguridad y, si algo falla, el panel vuelve solo a como estaba.
+- **Versiones sin terminal:** desde Ajustes → Versiones actualizas Personal OS (conservando tus personalizaciones),
+  deshaces cualquier personalización y vuelves a una copia de seguridad.
 - **Máquinas locales (opcional):** conecta tus máquinas de VirtualBox (por ejemplo, la que pide una asignatura) y elige
   qué agentes pueden usarlas: comandos, archivos, pantalla y su navegador. Se configura desde Ajustes → Ordenadores.
 

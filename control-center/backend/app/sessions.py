@@ -484,8 +484,12 @@ def download(sid: str, path: str, p: Principal = Depends(current_principal), db:
 
 def recover() -> None:
     with session_scope() as db:
-        for r in db.scalars(select(AgentRun).where(AgentRun.session_id != "main", AgentRun.status.in_(("queued", "running")))):
+        # Los turnos del Constructor siguen vivos fuera del panel: los retoma constructor.recover()
+        constructor = select(ChatSession.id).where(ChatSession.description == "constructor", ChatSession.kind == "conversacion")
+        for r in db.scalars(select(AgentRun).where(AgentRun.session_id != "main", AgentRun.session_id.not_in(constructor),
+                                                   AgentRun.status.in_(("queued", "running")))):
             r.status, r.ended_at = "error", utcnow()
             r.error = "El backend se reinició durante la ejecución"
-        for s in db.scalars(select(ChatSession).where(ChatSession.kind.in_(("independent", "runtime", "conversacion")), ChatSession.status == "running")):
+        for s in db.scalars(select(ChatSession).where(ChatSession.kind.in_(("independent", "runtime", "conversacion")), ChatSession.status == "running",
+                                                     ChatSession.description != "constructor")):
             s.status = "idle"

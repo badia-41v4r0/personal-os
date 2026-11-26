@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
+    "out-*/**", // compilaciones aparte: la del supervisor de cambios y la de la vista previa del Constructor
     "build/**",
     "next-env.d.ts",
   ]),

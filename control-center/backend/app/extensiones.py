@@ -2,7 +2,7 @@
 
 Si existe el paquete `app/privado/`, se carga al arrancar y su `registrar(app)` añade lo suyo: rutas de la API,
 módulos del registro, lecturas y acciones de los agentes, instrucciones extra e integraciones. Las carpetas
-`privado/` no se publican nunca (`privado/exportar-publico.sh` las excluye), así que el proyecto público no sabe nada
+`privado/` no se publican nunca, así que el proyecto público no sabe nada
 de ellas: sin ese paquete, esto no hace nada.
 """
 from dataclasses import replace

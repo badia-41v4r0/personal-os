@@ -19,6 +19,7 @@ import { api, post } from "@/lib/api";
 import { clock, timeAgo } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import { asistente } from "@/lib/asistente";
+import { BASE } from "@/lib/base";
 
 type Spec = { name: string; target: "jarvis" | "panel"; description: string; objective: string; specialty: string; instructions: string; restrictions: string; level: "read" | "propose" | "execute"; model: "sonnet" | "opus" | "inherit"; internet: boolean; vault: boolean; virtual_computer: boolean; subagents?: boolean };
 type Agent = { id: string; name: string; description: string; origin: "repo" | "panel"; status: "draft" | "active" | "inactive"; target: "jarvis" | "panel"; level: string; model: string; specialty: string; internet: boolean; vault: boolean; virtual_computer: boolean; subagents?: boolean; version: number; tools: string[]; workdir: string; runs: number; last_run: string | null; updated_at: string; file: string | null };
@@ -193,7 +194,7 @@ function Detail({ id }: { id: string }) {
             {d.status !== "active" ? <Button size="sm" variant="outline" onClick={() => act("activate")}><Power /> Activar</Button>
               : <Button size="sm" variant="outline" onClick={() => act("deactivate")}><PowerOff /> Desactivar</Button>}
             <Button size="sm" variant="outline" onClick={() => { const n = prompt("Nombre de la copia (minúsculas y guiones)"); if (n) run(async () => { await post(`/agents/${id}/duplicate`, { name: n }); router.push(`/ajustes/agentes/?a=${n}`); }); }}><Copy /> Duplicar</Button>
-            <a href={`/api/v1/agents/${id}/export`} className="inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[0.8rem] ring-1 ring-border hover:bg-muted"><Download className="size-3.5" /> Exportar</a>
+            <a href={`${BASE}/api/v1/agents/${id}/export`} className="inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[0.8rem] ring-1 ring-border hover:bg-muted"><Download className="size-3.5" /> Exportar</a>
             {d.origin === "panel" && d.status !== "active" && (
               <Button size="sm" variant="destructive" onClick={() => confirm_delete(id, () => router.push("/ajustes/agentes/"), setError)}><Trash2 /> Eliminar</Button>
             )}

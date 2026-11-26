@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import "@xterm/xterm/css/xterm.css";
 import { ErrorState } from "./states";
+import { BASE } from "@/lib/base";
 
 function wsUrl(path: string) {
   return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}${path}`;
@@ -26,7 +27,7 @@ export function VcTerminal({ id }: { id: string }) {
       term.loadAddon(fit);
       term.open(el.current);
       fit.fit();
-      ws = new WebSocket(wsUrl(`/api/v1/virtual-computers/${id}/tty`));
+      ws = new WebSocket(wsUrl(`${BASE}/api/v1/virtual-computers/${id}/tty`));
       ws.binaryType = "arraybuffer";
       const sendSize = () => ws?.readyState === 1 && ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
       ws.onopen = () => { setState("open"); sendSize(); term.focus(); };
@@ -57,7 +58,7 @@ export function VcDesktop({ id, viewOnly }: { id: string; viewOnly: boolean }) {
     (async () => {
       const { default: RFB } = await import("@novnc/novnc");
       if (disposed || !el.current) return;
-      const r = new RFB(el.current, wsUrl(`/api/v1/virtual-computers/${id}/vnc`), { wsProtocols: ["binary"], shared: true });
+      const r = new RFB(el.current, wsUrl(`${BASE}/api/v1/virtual-computers/${id}/vnc`), { wsProtocols: ["binary"], shared: true });
       r.scaleViewport = true;
       r.resizeSession = false;
       r.viewOnly = viewOnly;

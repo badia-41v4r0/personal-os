@@ -13,6 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import { timeAgo } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import { asistente } from "@/lib/asistente";
+import { BASE } from "@/lib/base";
 
 type Entry = { name: string; path: string; dir: boolean; size: number; mtime: number };
 type FileData = { path: string; content: string; sha: string; mtime: number; editable: boolean; note: string };
@@ -143,7 +144,7 @@ function Viewer({ path, open }: { path: string; open: (p: string) => void }) {
               </dl>
             )}
             {file.path.endsWith(".md") ? (
-              <Markdown source={body} onWiki={wiki} imageSrc={(n) => `/api/v1/memory/raw?path=${encodeURIComponent(n.includes("/") ? n : dir ? `${dir}/${n}` : n)}`} />
+              <Markdown source={body} onWiki={wiki} imageSrc={(n) => `${BASE}/api/v1/memory/raw?path=${encodeURIComponent(n.includes("/") ? n : dir ? `${dir}/${n}` : n)}`} />
             ) : (
               <pre className="overflow-x-auto rounded-lg bg-muted p-3 font-mono text-xs">{file.content}</pre>
             )}

@@ -22,6 +22,7 @@ Solo Linux. En Windows, dentro de WSL2: ver [Windows con WSL2](#windows-con-wsl2
 | Ollama con `bge-m3` (`CC_EMBED_MODEL=bge-m3`) | Búsqueda semántica en tu memoria |
 | GPU NVIDIA | Voz más rápida |
 | `yt-dlp` y `ffmpeg` | Módulo Vídeos |
+| `bwrap` ([bubblewrap](https://github.com/containers/bubblewrap)) | Constructor y su vista previa (trabajan encerrados en tu PC) |
 | `sudo loginctl enable-linger $USER` | Que los servicios sigan con la sesión cerrada |
 
 `bin/pos comprobar` revisa todo esto.
@@ -258,11 +259,15 @@ Todo desde un solo comando, `bin/pos` (`bin/pos ayuda` las enseña todas):
 | `bin/pos contraseña [USUARIO]` | Cambiar la contraseña del panel si la olvidaste |
 | `bin/pos postgres` | Pasar de SQLite a PostgreSQL (búsqueda semántica y más concurrencia) |
 | `bin/pos voz` | Arrancar Whisper (voz y vídeos) |
-| `bin/pos actualizar` | Copia de la base, dependencias, web, imagen y reinicio. No toca tus datos |
+| `bin/pos actualizar` | Copia de seguridad, dependencias, web, imagen y reinicio; si el panel no arranca, vuelve a la web y la base de antes. No toca tus datos |
 | `bin/pos desinstalar` | Quita servicios y contenedores. Tus datos se quedan |
 | `bin/pos desinstalar --borrar-datos` | Lo anterior y además borra base, vault y archivos (pide confirmación) |
 
-Para actualizar: `git pull && bin/pos actualizar`. Para liberar las imágenes después de desinstalar:
+**Para actualizar, no hace falta la terminal:** Ajustes → Versiones → Buscar actualizaciones → Actualizar. Antes se hace
+una copia de seguridad (base, vault y configuración, en `data/cambios/copias/`); si la versión nueva no arranca, el
+panel vuelve solo a la anterior, y tus personalizaciones del Constructor se conservan. Desde ahí también deshaces
+personalizaciones y restauras una copia. Desde la terminal sigue valiendo `git pull && bin/pos actualizar`. Más
+detalle en [constructor.md](../control-center/docs/constructor.md). Para liberar las imágenes después de desinstalar:
 `docker image rm $(docker images --format '{{.Repository}}:{{.Tag}}' | grep '^<instancia>')`.
 
 Copias: cada noche, cifradas con `CC_BACKUP_KEY` (en `secrets.env`), en `data/control-center/backups/`. **Guarda esa

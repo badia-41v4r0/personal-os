@@ -1,7 +1,7 @@
 import {
   Activity, Bot, BookOpen, CalendarDays, Cpu, Dumbbell, FolderGit2, GraduationCap, Heart, HomeIcon, Inbox, Landmark,
   LayersIcon, ListChecks, ListTree, MessagesSquare, Monitor as MonitorIcon, Plane, Plug, Popcorn, ScrollText, Server, Settings, ShieldCheck,
-  BriefcaseBusiness, Target, UserRound, Zap,
+  BriefcaseBusiness, History, Target, UserRound, Zap,
 } from "lucide-react";
 
 export type NavItem = { href: string; label: string; icon: typeof Activity; hint?: string };
@@ -58,6 +58,7 @@ export const AJUSTES_GROUPS: NavGroup[] = [
       { href: "/ajustes/conexiones/", label: "Conexiones", icon: Plug, hint: "Google, GitHub, campus, Telegram y avisos en el móvil" },
       { href: "/ajustes/automatizaciones/", label: "Automatizaciones", icon: Zap, hint: "Horario de las rutinas" },
       { href: "/ajustes/permisos/", label: "Autonomía", icon: ShieldCheck, hint: "Qué pueden hacer los agentes sin preguntarte" },
+      { href: "/ajustes/versiones/", label: "Versiones", icon: History, hint: "Actualizar Personal OS, deshacer personalizaciones y copias de seguridad" },
     ],
   },
   {

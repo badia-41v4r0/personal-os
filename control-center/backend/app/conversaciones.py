@@ -25,7 +25,7 @@ from .security import Principal, current_principal, require_admin
 
 router = APIRouter(prefix="/api/v1/conversaciones", dependencies=[Depends(current_principal)])
 KIND = "conversacion"
-JARVIS, COACH = "jarvis", "coach"
+JARVIS, COACH, CONSTRUCTOR = "jarvis", "coach", "constructor"
 TITULO_MAX = 70
 _tasks: set[asyncio.Task] = set()
 
@@ -37,7 +37,7 @@ def _iso(d):
 def _activo(key: str) -> bool:
     if key == JARVIS:
         return True
-    if key != COACH and key not in orchestrator.SECTIONS:
+    if key not in (COACH, CONSTRUCTOR) and key not in orchestrator.SECTIONS:
         return False
     return modules.asistente_activo(key)
 
@@ -99,6 +99,9 @@ def crear_conversacion(asistente: str, texto: str, p: Principal) -> str:
     if not _activo(asistente):
         raise HTTPException(404, "Asistente desconocido o desactivado")
     cid, nombre = str(uuid.uuid4()), titulo(texto)
+    if asistente == CONSTRUCTOR:  # una sola personalización abierta a la vez (409 si ya hay otra)
+        from . import constructor
+        return constructor.crear_conversacion(texto, p, nombre)
     if asistente == COACH:
         from .gym_plan import coach_prompt, coach_scope
         with session_scope() as db:
@@ -149,10 +152,13 @@ async def enviar(cid: str, body: EnviarIn, p: Principal = Depends(require_admin)
         c = _get(db, cid)
         key, ocupada = c.description, db.scalar(select(AgentRun.id).where(
             AgentRun.session_id == cid, AgentRun.status.in_(("queued", "running"))).limit(1))
-        spec = None if key == COACH else _spec(c)
+        spec = None if key in (COACH, CONSTRUCTOR) else _spec(c)
     if ocupada:
         raise HTTPException(409, "Aún está respondiendo: espera o interrúmpelo")
     prompt = sessions._prompt_with_files(cid, body.texto, body.adjuntos)
+    if key == CONSTRUCTOR:
+        from . import constructor
+        return await constructor.enviar(cid, prompt, p)
     if key == COACH:
         from .gym_plan import coach_prompt, coach_scope
         run_id = str(uuid.uuid4())
@@ -178,7 +184,7 @@ async def enviar(cid: str, body: EnviarIn, p: Principal = Depends(require_admin)
 async def interrumpir(cid: str, p: Principal = Depends(require_admin)):
     from .adapters import hostagent
     with session_scope() as db:
-        _get(db, cid)
+        asistente = _get(db, cid).description
         pendientes = list(db.scalars(select(AgentRun).where(AgentRun.session_id == cid, AgentRun.status.in_(("queued", "running")))))
         for r in pendientes:
             r.status, r.ended_at, r.error = "interrupted", utcnow(), "Interrumpida desde el panel"
@@ -186,6 +192,10 @@ async def interrumpir(cid: str, p: Principal = Depends(require_admin)):
         events.audit(db, p.name, "chat.conversacion.interrupt", target=cid)
     for i in ids:
         events.publish("run.interrupted", {"run_id": i, "session_id": cid})
+    if asistente == CONSTRUCTOR:
+        from . import constructor
+        await constructor.interrumpir()
+        return {"interrumpidas": ids}
     try:
         await hostagent.call(f"/v1/sessions/{cid}/stop", method="POST")
     except Exception:  # noqa: BLE001  sin contenedor en marcha no hay nada que parar

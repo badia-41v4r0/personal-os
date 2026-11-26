@@ -14,10 +14,11 @@ import { api, upload } from "@/lib/api";
 import { bytes, timeAgo } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import { Chip } from "./common";
+import { BASE } from "@/lib/base";
 
 type Item = { nombre: string; ruta: string; carpeta: boolean; bytes: number; modificado: string; tipo: string };
 type Listado = { ruta: string; nombres: Record<string, string>; items: Item[] };
-const raw = (ruta: string, descargar = false) => `/api/v1/education/archivos/raw?path=${encodeURIComponent(ruta)}${descargar ? "&descargar=true" : ""}`;
+const raw = (ruta: string, descargar = false) => `${BASE}/api/v1/education/archivos/raw?path=${encodeURIComponent(ruta)}${descargar ? "&descargar=true" : ""}`;
 const TEXTO = /\.(md|txt|c|h|py|json|csv|sh|v|sv|ya?ml|java|js|ts|tex|log|xml|sql)$/i;
 const href = (ruta: string) => `/educacion/?tab=archivos${ruta ? `&ruta=${encodeURIComponent(ruta)}` : ""}`;
 
