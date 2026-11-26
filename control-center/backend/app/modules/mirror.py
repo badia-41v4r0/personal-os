@@ -47,6 +47,12 @@ def task_line(t: Task) -> str:
             + (f" ✅ {t.done_on}" if t.done and t.done_on else ""))
 
 
+def orden_nota(tareas) -> list[Task]:
+    """El orden en que salen en Tareas.md: pendientes y luego hechas; en cada grupo, por fecha (sin fecha al final) y por
+    antigüedad. vault_sync empareja las tareas repetidas por este mismo orden."""
+    return sorted(tareas, key=lambda t: (bool(t.done), t.due is None, t.due or "", t.id))
+
+
 def export_tasks(db: Session, path=None) -> None:
     path = path or get_settings().vault / "Jarvis/Tareas.md"
     previo = path.read_text(encoding="utf-8") if path.exists() else TAREAS_INICIO
@@ -57,7 +63,7 @@ def export_tasks(db: Session, path=None) -> None:
         inicio = "\n".join(lineas[:next((i for i, x in enumerate(lineas) if x.lstrip().startswith("- [")), len(lineas))]).rstrip()
     if AVISO_COPIA not in inicio:
         inicio += "\n\n" + AVISO_COPIA
-    filas = list(db.scalars(select(Task).where(Task.removed_at.is_(None)).order_by(Task.due.is_(None), Task.due, Task.id)))
+    filas = orden_nota(db.scalars(select(Task).where(Task.removed_at.is_(None))))
     pendientes = [task_line(t) for t in filas if not t.done]
     hechas = [task_line(t) for t in filas if t.done]
     _write(path, "\n".join([inicio, "", "## Pendientes", *pendientes, "", "## Hechas", *hechas]) + "\n")

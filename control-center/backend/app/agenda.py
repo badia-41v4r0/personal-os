@@ -144,7 +144,7 @@ def tasks():
     from .models import Task
     with session_scope() as db:
         importar_tareas(db)
-        todas = [{"texto": t.text, "fecha": t.due, "area": t.area, "hecho": t.done, "hecho_el": t.done_on}
+        todas = [{"id": t.id, "texto": t.text, "fecha": t.due, "area": t.area, "hecho": t.done, "hecho_el": t.done_on}
                  for t in db.scalars(select(Task).where(Task.removed_at.is_(None)))]
     if not todas:  # instalación nueva: sin tareas, pero con sus áreas (el formulario de «Nueva tarea» las necesita)
         return {"pendientes": [], "hechas": [], "areas": tareas.ajustes.areas(), "fuente": "Jarvis/Tareas.md"}
@@ -197,3 +197,37 @@ def task_new(body: TaskNewIn, p: Principal = Depends(require_admin), db: Session
     events.publish("tasks.changed", {"texto": body.texto[:120]}, db=db)
     return {"ok": True, **r}
 
+
+class TaskEditIn(BaseModel):
+    texto: str = Field(..., min_length=1, max_length=300)
+    fecha: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    area: str = Field(..., max_length=16)
+
+
+def _task_action(fn, payload: dict, db: Session) -> dict:
+    try:
+        return fn(payload, db)
+    except LookupError as e:
+        raise HTTPException(409, str(e))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+
+@router.patch("/tasks/{task_id}")
+def task_edit(task_id: int, body: TaskEditIn, p: Principal = Depends(require_admin), db: Session = Depends(get_db)):
+    """Cambia texto, fecha y área de una tarea (por su id: dos tareas pueden tener el mismo texto)."""
+    from .modules import agent_caps
+    r = _task_action(agent_caps.task_edit, {"id": task_id, "nuevo_texto": body.texto, "fecha": body.fecha, "area": body.area}, db)
+    events.audit(db, p.name, "task.edit", target=r["despues"]["texto"][:255], antes=r["antes"], despues=r["despues"])
+    events.publish("tasks.changed", {"texto": r["despues"]["texto"][:120]}, db=db)
+    return {"ok": True, **r}
+
+
+@router.delete("/tasks/{task_id}")
+def task_delete(task_id: int, p: Principal = Depends(require_admin), db: Session = Depends(get_db)):
+    """Quita una tarea de la lista y de Tareas.md (en la base queda marcada como quitada)."""
+    from .modules import agent_caps
+    r = _task_action(agent_caps.task_delete, {"id": task_id}, db)
+    events.audit(db, p.name, "task.delete", target=r["texto"][:255], id=r["id"])
+    events.publish("tasks.changed", {"texto": r["texto"][:120]}, db=db)
+    return {"ok": True, **r}

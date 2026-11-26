@@ -88,9 +88,11 @@ MARCA_TAREAS = "fuente-tareas-bd"  # existe desde que la base manda en las tarea
 
 
 def _clave_tareas(rows) -> dict:
-    """(texto, n-ésima repetición) -> fila: dos tareas iguales son dos tareas, en el orden de la base."""
+    """(texto, n-ésima repetición) -> fila: dos tareas iguales son dos tareas. Se cuentan en el mismo orden en que las
+    escribe la nota (mirror.orden_nota): contadas por antigüedad, una hecha y otra pendiente con el mismo texto se
+    cruzaban y la nota se rehacía en cada pasada con un aviso (26/11/2026)."""
     count, out = {}, {}
-    for t in sorted(rows, key=lambda r: r.id):
+    for t in mirror.orden_nota(rows):
         n = count[t.text] = count.get(t.text, 0) + 1
         out[(t.text, n)] = t
     return out

@@ -304,6 +304,71 @@ def task_reschedule(p: dict, db: Session) -> dict:
     return {"texto": p["texto"], "antes": antes, "fecha": nueva}
 
 
+def _task_by(db: Session, p: dict) -> Task:
+    """Por `id` (el panel) o, si no lo hay, la primera pendiente con ese texto (Jarvis)."""
+    if p.get("id") is not None:
+        t = db.get(Task, int(p["id"]))
+        t = t if t is not None and t.removed_at is None else None
+    else:
+        t = _pending_task(db, str(p.get("texto") or ""))
+    if t is None:
+        raise LookupError("No encuentro esa tarea: puede que ya haya cambiado")
+    return t
+
+
+def _task_state(t: Task) -> dict:
+    return {"texto": t.text, "fecha": t.due, "area": t.area}
+
+
+def task_edit(p: dict, db: Session) -> dict:
+    """Cambia texto, fecha o área. Solo lo que venga: `fecha` vacía o nula quita la fecha."""
+    t = _task_by(db, p)
+    antes = _task_state(t)
+    if "nuevo_texto" in p:
+        texto = _safe_line(p["nuevo_texto"] or "")
+        if not texto:
+            raise ValueError("Tarea vacía")
+        t.text = texto
+    if "fecha" in p:
+        t.due = date.fromisoformat(p["fecha"]).isoformat() if p["fecha"] else None
+    if p.get("area") is not None:
+        if p["area"] not in ajustes.areas():
+            raise ValueError(f"Área desconocida: {p['area']}")
+        t.area = p["area"]
+    t.updated_at = utcnow()
+    db.flush()
+    _export_tasks(db)
+    return {"id": t.id, "antes": antes, "despues": _task_state(t)}
+
+
+def task_edit_undo(r: dict, db: Session) -> dict:
+    t = db.get(Task, r["id"])
+    if t is not None and t.removed_at is None:
+        a = r["antes"]
+        t.text, t.due, t.area, t.updated_at = a["texto"], a["fecha"], a["area"], utcnow()
+        db.flush()
+        _export_tasks(db)
+    return {}
+
+
+def task_delete(p: dict, db: Session) -> dict:
+    """Se quita de la lista y de Tareas.md; en la base queda marcada (`removed_at`), así se puede deshacer."""
+    t = _task_by(db, p)
+    t.removed_at = t.updated_at = utcnow()
+    db.flush()
+    _export_tasks(db)
+    return {"id": t.id, "texto": t.text}
+
+
+def task_delete_undo(r: dict, db: Session) -> dict:
+    t = db.get(Task, r["id"])
+    if t is not None and t.removed_at is not None:
+        t.removed_at, t.updated_at = None, utcnow()
+        db.flush()
+        _export_tasks(db)
+    return {}
+
+
 def _task_in(area: str):
     def create(p: dict, db: Session) -> dict:
         return task_create({"texto": p["texto"], "fecha": p.get("fecha"), "area": area}, db)
@@ -607,6 +672,9 @@ for cap in (
     actions.Capability("repo.create", 3, repo_create, "Crear una repo privada", summary=lambda p: f"Repo: {p.get('nombre')}"),
     actions.Capability("task.create", 1, task_create, "Crear una tarea", inverse=task_create_undo, summary=lambda p: f"Tarea: {p.get('texto')}"),
     actions.Capability("task.done", 1, task_done, "Marcar una tarea como hecha", inverse=task_done_undo, summary=lambda p: f"Hecha: {p.get('texto')}"),
+    actions.Capability("task.edit", 1, task_edit, "Cambiar el texto, la fecha o el área de una tarea", inverse=task_edit_undo,
+                       summary=lambda p: f"Editar: {p.get('texto') or p.get('id')}" + (f" → {p.get('nuevo_texto')}" if p.get("nuevo_texto") else "")),
+    actions.Capability("task.delete", 1, task_delete, "Borrar una tarea", inverse=task_delete_undo, summary=lambda p: f"Borrar: {p.get('texto') or p.get('id')}"),
     actions.Capability("note.add", 1, note_add, "Guardar una nota en la bandeja", summary=lambda p: "Nota en la bandeja"),
     actions.Capability("gym.register", 1, _synced(gym_register, "sync_workouts"), "Registrar un entreno", summary=lambda p: f"Entreno del {p.get('fecha') or 'día de hoy'}"),
     actions.Capability("health.log", 1, health_log, "Registrar una medida de salud", inverse=health_log_undo, summary=lambda p: f"{p.get('metrica')}: {p.get('valor')}"),

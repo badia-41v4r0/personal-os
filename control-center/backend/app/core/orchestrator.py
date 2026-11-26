@@ -30,7 +30,7 @@ class Specialist:
 
 COMMON_TOOLS = ("memory.search", "memory.facts", "memory.context", "tasks.list", "agenda.days", "uni.deadlines", "gym.summary")
 JARVIS_TOOLS = COMMON_TOOLS + ("mail.recent", "mail.read", "ocio.list", "ocio.search")
-JARVIS_CAPS = ("memory.fact.propose", "task.create", "task.done", "task.reschedule", "uni.check", "note.add", "gym.register", "gym.pause.log", "health.log", "career.application.create",
+JARVIS_CAPS = ("memory.fact.propose", "task.create", "task.done", "task.reschedule", "task.edit", "task.delete", "uni.check", "note.add", "gym.register", "gym.pause.log", "health.log", "career.application.create",
                "calendar.create", "calendar.move", "calendar.delete", "mail.draft", "ocio.add", "ocio.update",
                "day.close", "encargo.create", "ayudante.create", "repo.create", "video.analyze")
 # Lo básico sobre el usuario vale en todos los apartados. Lo demás de cada apartado es solo suyo: lo que no está aquí, no lo puede ni leer.
@@ -64,7 +64,7 @@ DEFAULT = Specialist("jarvis", "standard", JARVIS_TOOLS, JARVIS_CAPS, ())
 # Asistente de cada apartado del panel: aquí manda dónde está el usuario, no sus palabras
 SECTIONS: dict[str, Specialist] = {
     "agenda": Specialist("agenda", "standard", _PERFIL + ("tasks.list", "agenda.days", "uni.deadlines"),
-                         _RECUERDO + ("task.create", "task.done", "task.reschedule", "calendar.create", "calendar.move", "calendar.delete"), (),
+                         _RECUERDO + ("task.create", "task.done", "task.reschedule", "task.edit", "task.delete", "calendar.create", "calendar.move", "calendar.delete"), (),
                          sensitive=True, vault=True, vault_paths=("Jarvis/Tareas.md",), section=True),
     "salud": Specialist("salud", "standard", _PERFIL + ("health.list",), _RECUERDO + ("health.log",), (), sensitive=True, section=True),
     "finanzas": replace(SPECIALISTS["finanzas"], section=True),

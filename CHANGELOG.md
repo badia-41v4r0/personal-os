@@ -6,6 +6,19 @@ sea 0.x, una versión menor (0.**2**.0) puede traer cambios que pidan hacer algo
 
 ## [Sin publicar]
 
+## [0.1.2] — 2026-11-26
+
+### Novedades
+
+- **Editar y borrar tareas.** En Tareas, cada tarea pendiente tiene un lápiz para cambiar su texto, su fecha (o
+  quitarla) y su área en la propia fila, y una papelera que pide confirmación antes de borrar. Jarvis y el asistente de
+  Agenda también pueden hacerlo cuando se lo pides (`task.edit` y `task.delete`), y se puede deshacer.
+
+### Arreglos
+
+- **Tareas repetidas:** con dos tareas del mismo texto (por ejemplo, una hecha y otra nueva igual), la copia
+  `Tareas.md` se rehacía en cada sincronización y saltaba sin parar el aviso «Tareas.md es una copia de la base de datos».
+
 ## [0.1.1] — 2026-11-26
 
 ### Novedades
