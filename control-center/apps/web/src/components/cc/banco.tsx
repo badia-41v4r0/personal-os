@@ -39,7 +39,7 @@ function Copiar({ texto }: { texto: string }) {
   );
 }
 
-function Paso({ n, titulo, hecho, children }: { n: number; titulo: string; hecho?: boolean; children: React.ReactNode }) {
+export function Paso({ n, titulo, hecho, children }: { n: number; titulo: string; hecho?: boolean; children: React.ReactNode }) {
   return (
     <li className="grid grid-cols-[1.5rem_1fr] gap-x-2 gap-y-2">
       <span className={`grid size-6 place-items-center rounded-full text-xs font-medium ${hecho ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground"}`}>{hecho ? <Check className="size-3.5" /> : n}</span>

@@ -12,6 +12,10 @@ RestartSec=5
 NoNewPrivileges=yes
 UMask=0077
 PrivateTmp=yes
+# VirtualBox (máquinas locales): su canal IPC está en /tmp. Se comparte solo esa carpeta para hablar con el mismo
+# VBoxSVC que el usuario; si no, el servicio levanta otro, ve las VMs apagadas y no puede arrancarlas.
+ExecStartPre=+/usr/bin/mkdir -p -m 0700 /tmp/.vbox-%u-ipc
+BindPaths=-/tmp/.vbox-%u-ipc
 MemoryMax=256M
 CPUQuota=25%
 

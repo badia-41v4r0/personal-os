@@ -58,6 +58,8 @@ import psutil
 import proveedores
 import sesiones
 import vms
+import maquinas
+import maquinas_admin
 import google_auth
 import fcntl
 
@@ -841,6 +843,64 @@ def banco_clave(request: Request, app_id: str = Body(...), pem: str = Body(...))
     return {"app_id": app_id, "guardada": True}
 
 
+# ---------- máquinas locales (VirtualBox del usuario), administradas desde el panel ----------
+
+def _maq(request: Request, cap: str, fn, *a, **kw):
+    """Ejecuta una operación de maquinas_admin con auditoría; errores de uso → 422, máquina desconocida → 404."""
+    try:
+        out = fn(*a, **kw)
+    except KeyError as e:
+        _audit(request, cap, "error")
+        raise HTTPException(404, str(e).strip("'\"")) from None
+    except (ValueError, subprocess.TimeoutExpired) as e:
+        _audit(request, cap, "error", reason=str(e)[:200])
+        raise HTTPException(422, str(e) if isinstance(e, ValueError) else "VirtualBox tardó demasiado") from None
+    _audit(request, cap, "ok", **{k: v for k, v in kw.items() if k in ("mid", "vbox", "que")})
+    return out
+
+
+@app.get("/v1/maquinas", dependencies=[Depends(auth)])
+def maquinas_estado():
+    return maquinas_admin.estado(DATA, SECRETS)
+
+
+@app.post("/v1/maquinas", dependencies=[Depends(auth)])
+def maquinas_preparar(request: Request, vbox: str = Body(...), nombre: str = Body(""), instantanea: bool = Body(True)):
+    return _maq(request, "maquinas.preparar", lambda **k: maquinas_admin.preparar(DATA, SECRETS, k["vbox"], nombre, instantanea), vbox=vbox)
+
+
+@app.post("/v1/maquinas/{mid}/probar", dependencies=[Depends(auth)])
+def maquinas_probar(request: Request, mid: str, usuario: str = Body("", embed=True)):
+    return _maq(request, "maquinas.probar", lambda **k: maquinas_admin.probar(DATA, SECRETS, k["mid"], usuario), mid=mid)
+
+
+@app.patch("/v1/maquinas/{mid}", dependencies=[Depends(auth)])
+def maquinas_actualizar(request: Request, mid: str, nombre: str | None = Body(None), agentes: list[str] | None = Body(None),
+                        notas: str | None = Body(None)):
+    return _maq(request, "maquinas.actualizar", lambda **k: maquinas_admin.actualizar(DATA, k["mid"], nombre, agentes, notas), mid=mid)
+
+
+@app.delete("/v1/maquinas/{mid}", dependencies=[Depends(auth)])
+def maquinas_quitar(request: Request, mid: str):
+    return _maq(request, "maquinas.quitar", lambda **k: maquinas_admin.quitar(DATA, SECRETS, k["mid"]), mid=mid)
+
+
+@app.post("/v1/maquinas/{mid}/accion", dependencies=[Depends(auth)])
+def maquinas_accion(request: Request, mid: str, que: str = Body(..., embed=True)):
+    return _maq(request, "maquinas.accion", lambda **k: maquinas_admin.accion(DATA, k["mid"], k["que"]), mid=mid, que=que)
+
+
+@app.get("/v1/maquinas/{mid}/captura", dependencies=[Depends(auth)])
+def maquinas_captura(request: Request, mid: str):
+    try:
+        out = maquinas_admin.captura(DATA, mid)
+    except (KeyError, ValueError):
+        raise HTTPException(404, "Esa máquina no está conectada") from None
+    if "error" in out:
+        raise HTTPException(409, out["error"])
+    return out
+
+
 @app.get("/v1/credenciales", dependencies=[Depends(auth)])
 def credenciales_estado():
     """Qué credenciales del .env están puestas (nunca su valor)."""
@@ -938,6 +998,9 @@ async def start_gateway(sid: str, cfg: dict, gw_dir: Path, extra: asyncio.Queue)
             audit(op, "denied")
             return {"error": "En una solicitud solo puedes leer la página y rellenar campos con form_fill y form_attach. "
                              "No hay terminal, ni ratón, ni teclado, y el envío lo hace el usuario al aprobar."}
+        if op.startswith("vm_"):  # máquinas locales del usuario (VirtualBox) asignadas a este agente
+            mias = maquinas.de_agente(maquinas.cargar(DATA, SECRETS), cfg.get("owner"))
+            return maquinas.op(mias, op[3:], a, ROOT, lambda o, outcome="ok", **kw: audit(o, outcome, **kw))
         if op == "info":
             if not exists():
                 if aplicaciones:

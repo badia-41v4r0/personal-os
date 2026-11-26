@@ -7,6 +7,7 @@ import { cn } from "cn";
 import { PageHeader, usePanel } from "@/components/cc/shell";
 import { StatusDot } from "@/components/cc/status";
 import { Empty, ErrorState, Loading } from "@/components/cc/states";
+import { MaquinasLocales } from "@/components/cc/maquinas-locales";
 import { VcDesktop, VcTerminal } from "@/components/cc/vc-views";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -262,6 +263,7 @@ function ListView() {
         Aislamiento: usuario sin privilegios, raíz de solo lectura, sin capacidades de Linux, sin red salvo que la actives, sin acceso a tu carpeta personal, al socket de Docker ni a secretos.
         Son contenedores: comparten el kernel con el PC (menos aislamiento que una máquina virtual). Como mucho 3 en marcha a la vez.
       </p>
+      <MaquinasLocales />
     </>
   );
 }

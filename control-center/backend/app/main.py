@@ -35,6 +35,7 @@ from .sessions import router as sessions_router
 from .conversaciones import router as conversaciones_router
 from .agents import router as agents_router
 from .vcs import router as vcs_router
+from .maquinas import router as maquinas_router
 from .approvals import router as approvals_router
 from .projects import router as projects_router
 from .claude_usage import router as usage_router
@@ -79,6 +80,7 @@ app.include_router(sessions_router)
 app.include_router(conversaciones_router)
 app.include_router(agents_router)
 app.include_router(vcs_router)
+app.include_router(maquinas_router)
 app.include_router(approvals_router)
 app.include_router(projects_router)
 app.include_router(usage_router)

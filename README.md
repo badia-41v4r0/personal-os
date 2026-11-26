@@ -21,6 +21,8 @@ máquina; el modelo de IA solo ve lo que necesita en cada turno.
 - **Onboarding guiado:** la primera vez que abres un apartado, su asistente te ayuda a configurarlo. Nada se guarda
   sin tu aprobación. El de Educación puede abrir tu campus virtual en un navegador aislado y leer asignaturas,
   entregas y calendario por ti.
+- **Máquinas locales (opcional):** conecta tus máquinas de VirtualBox (por ejemplo, la que pide una asignatura) y elige
+  qué agentes pueden usarlas: comandos, archivos, pantalla y su navegador. Se configura desde Ajustes → Ordenadores.
 
 | Motor de IA | Módulos | Primera vez en un apartado |
 |---|---|---|
@@ -90,6 +92,8 @@ personal, estudio, investigación, organizaciones sin ánimo de lucro). El uso c
 quieres para un uso comercial, escríbele. Para contribuir, mira [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Estado
+
+Versión actual en [`VERSION`](VERSION); qué cambia en cada una, en [CHANGELOG.md](CHANGELOG.md).
 
 Proyecto personal publicado tal cual. Funciona en Linux, donde los ordenadores virtuales están incluidos y se instalan
 con `bin/pos instalar` (salvo con `--sin-ordenadores`). En Windows puede funcionar dentro de WSL2

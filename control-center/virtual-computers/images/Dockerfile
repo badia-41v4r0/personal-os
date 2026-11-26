@@ -20,8 +20,9 @@ FROM terminal AS desktop
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
       chromium xvfb x11vnc fluxbox xterm pcmanfm scrot xdotool fonts-dejavu-core fonts-liberation x11-xserver-utils \
+      libatomic1 \
  && rm -rf /var/lib/apt/lists/*
-# Playwright (Python) usando el Chromium del sistema: no descarga navegadores
+# Playwright (Python) usando el Chromium del sistema: no descarga navegadores. Su driver (node) necesita libatomic1.
 RUN python3 -m venv /opt/pw && /opt/pw/bin/pip install --no-cache-dir playwright==1.* && chmod -R a+rX /opt/pw
 ENV PATH=/opt/pw/bin:$PATH PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium
 # fluxbox sin fondo de pantalla (si no, abre un aviso xmessage); color liso con xsetroot

@@ -46,7 +46,60 @@ TOOLS = [
      "inputSchema": {"type": "object", "properties": {"ref": {"type": "string"}, "documento": {"type": "string"}}, "required": ["ref", "documento"]}},
     {"name": "vc_destroy", "description": "Elimina tu ordenador virtual cuando hayas terminado.",
      "inputSchema": {"type": "object", "properties": {}}},
+
 ]
+_M = {"maquina": {"type": "string", "description": "id de la máquina (por defecto, la primera tuya)"}}
+VM_TOOLS = [
+    {"name": "vm_list", "description": "Tus máquinas locales (VMs de VirtualBox del usuario, con internet y su software): id, estado y notas.",
+     "inputSchema": {"type": "object", "properties": {}}},
+    {"name": "vm_info", "description": "Estado de una máquina local y si responde.",
+     "inputSchema": {"type": "object", "properties": {**_M}}},
+    {"name": "vm_start", "description": "Arranca la máquina (sin ventana) y espera a que responda (hasta ~3 min).",
+     "inputSchema": {"type": "object", "properties": {**_M}}},
+    {"name": "vm_stop", "description": "Apaga la máquina con normalidad. Solo si el usuario no la está usando.",
+     "inputSchema": {"type": "object", "properties": {**_M}}},
+    {"name": "vm_exec", "description": "Ejecuta un comando bash en la máquina (usuario normal, carpeta personal, con su pantalla en DISPLAY). Para abrir programas con ventana: `setsid nohup prog >/tmp/x.log 2>&1 &`.",
+     "inputSchema": {"type": "object", "properties": {**_M, "command": {"type": "string"}, "timeout": {"type": "integer", "default": 60}}, "required": ["command"]}},
+    {"name": "vm_read_file", "description": "Lee un archivo de texto de la máquina (ruta absoluta o relativa a su carpeta personal).",
+     "inputSchema": {"type": "object", "properties": {**_M, "path": {"type": "string"}}, "required": ["path"]}},
+    {"name": "vm_write_file", "description": "Escribe un archivo de texto en la máquina (crea las carpetas).",
+     "inputSchema": {"type": "object", "properties": {**_M, "path": {"type": "string"}, "content": {"type": "string"}}, "required": ["path", "content"]}},
+    {"name": "vm_copy_in", "description": "Copia un archivo de /entregables/… o /vault/… a la máquina (por defecto a ~/Documents/).",
+     "inputSchema": {"type": "object", "properties": {**_M, "origen": {"type": "string"}, "destino": {"type": "string"}}, "required": ["origen"]}},
+    {"name": "vm_copy_out", "description": "Copia un archivo de la máquina a /entregables/… (no pisa nada salvo sobrescribir=true).",
+     "inputSchema": {"type": "object", "properties": {**_M, "origen": {"type": "string"}, "destino": {"type": "string"},
+                     "sobrescribir": {"type": "boolean", "default": False}}, "required": ["origen", "destino"]}},
+    {"name": "vm_open_url", "description": "Abre una URL en el Chromium de la máquina (con la sesión que haya iniciado el usuario allí). Devuelve URL final y título.",
+     "inputSchema": {"type": "object", "properties": {**_M, "url": {"type": "string"}}, "required": ["url"]}},
+    {"name": "vm_page_text", "description": "Texto visible y enlaces de la pestaña del Chromium de la máquina. Más barato que una captura: úsalo para leer.",
+     "inputSchema": {"type": "object", "properties": {**_M}}},
+    {"name": "vm_screenshot", "description": "Captura la pantalla de la máquina.",
+     "inputSchema": {"type": "object", "properties": {**_M}}},
+    {"name": "vm_click", "description": "Clic en la pantalla de la máquina (coordenadas de su captura). Devuelve una captura después.",
+     "inputSchema": {"type": "object", "properties": {**_M, "x": {"type": "integer"}, "y": {"type": "integer"},
+                     "button": {"type": "string", "enum": ["left", "middle", "right"], "default": "left"},
+                     "double": {"type": "boolean", "default": False}}, "required": ["x", "y"]}},
+    {"name": "vm_type", "description": "Escribe texto con el teclado de la máquina donde esté el foco. Devuelve una captura.",
+     "inputSchema": {"type": "object", "properties": {**_M, "text": {"type": "string"}}, "required": ["text"]}},
+    {"name": "vm_key", "description": "Pulsa teclas o atajos en la máquina (p. ej. «Return», «ctrl+s», «alt+F4»). Devuelve una captura.",
+     "inputSchema": {"type": "object", "properties": {**_M, "keys": {"type": "string"}}, "required": ["keys"]}},
+    {"name": "vm_scroll", "description": "Desplaza con la rueda en (x, y) de la máquina. Devuelve una captura.",
+     "inputSchema": {"type": "object", "properties": {**_M, "x": {"type": "integer", "default": 640}, "y": {"type": "integer", "default": 400},
+                     "direction": {"type": "string", "enum": ["up", "down", "left", "right"]}, "amount": {"type": "integer", "default": 3}},
+                     "required": ["direction"]}},
+]
+_vm_cache: list | None = None
+
+
+def tools() -> list:
+    """Las de máquinas locales solo si este agente tiene alguna (lo decide el Host Agent)."""
+    global _vm_cache
+    if _vm_cache is None:
+        try:
+            _vm_cache = VM_TOOLS if gateway("vm_list", {}).get("maquinas") else []
+        except (OSError, ValueError):
+            _vm_cache = []
+    return TOOLS + _vm_cache
 
 
 def gateway(op: str, args: dict) -> dict:
@@ -80,11 +133,11 @@ def handle(req: dict) -> dict | None:
     if m == "ping":
         return {"jsonrpc": "2.0", "id": rid, "result": {}}
     if m == "tools/list":
-        return {"jsonrpc": "2.0", "id": rid, "result": {"tools": TOOLS}}
+        return {"jsonrpc": "2.0", "id": rid, "result": {"tools": tools()}}
     if m == "tools/call":
         p = req.get("params") or {}
         name = p.get("name", "")
-        if name not in {t["name"] for t in TOOLS}:
+        if name not in {t["name"] for t in tools()}:
             return {"jsonrpc": "2.0", "id": rid, "error": {"code": -32602, "message": "herramienta desconocida"}}
         try:
             r = gateway(name.removeprefix("vc_"), p.get("arguments") or {})
