@@ -17,7 +17,7 @@ máquina; el modelo de IA solo ve lo que necesita en cada turno.
   [Enable Banking](https://enablebanking.com) (gratis para tus propias cuentas; cualquier banco que tenga en tu país).
   Un asistente en Finanzas te guía para configurarlo. Ver [instalación](docs/instalacion.md#conectar-tu-banco-opcional).
 - **Rutinas:** briefing por la mañana, recordatorio por la noche y revisión semanal.
-- **Elige tu motor de IA:** Claude Code, Codex (ChatGPT), OpenRouter (con OpenCode) o Antigravity.
+- **Elige tu motor de IA:** Claude Code, Codex (ChatGPT), OpenCode (suscripción Go, Zen u OpenRouter) o Antigravity.
 - **Onboarding guiado:** la primera vez que abres un apartado, su asistente te ayuda a configurarlo. Nada se guarda
   sin tu aprobación. El de Educación puede abrir tu campus virtual en un navegador aislado y leer asignaturas,
   entregas y calendario por ti.

@@ -11,15 +11,23 @@ import { api, post } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { CredencialForm } from "./credencial";
 
-type Prov = { id: string; nombre: string; conectado: boolean; mcp: boolean; subagentes: boolean; web: boolean; contenedor: boolean };
+type Prov = { id: string; nombre: string; conectado: boolean; claves?: Record<string, boolean>; mcp: boolean; subagentes: boolean; web: boolean; contenedor: boolean };
 type Config = { proveedor: string; relevo: boolean; modelos: Record<string, Record<string, string>>; limite_mensual_usd: number };
 type Estado = { config: Config; elegido: string; gasto_mes_openrouter: number; limite: number; aviso: string; proveedores: Prov[] };
+
+// Las dos claves que puede usar OpenCode: el prefijo del modelo decide cuál entra en cada turno
+const CLAVES: { id: string; nombre: string; placeholder: string; ayuda: string }[] = [
+  { id: "opencode", nombre: "Clave de OpenCode", placeholder: "Clave de opencode.ai",
+    ayuda: "Créala en opencode.ai (Zen o Go). Modelos opencode/… (Zen, por uso) u opencode-go/… (suscripción Go)." },
+  { id: "openrouter", nombre: "Clave de OpenRouter (opcional)", placeholder: "sk-or-…",
+    ayuda: "Créala en openrouter.ai. Modelos openrouter/proveedor/modelo." },
+];
 
 const PERFILES: [string, string][] = [["fast", "Rápido"], ["standard", "Normal"], ["deep", "A fondo"], ["code", "Código"]];
 const AYUDA: Record<string, string> = {
   claude: "Tu suscripción de Claude (Pro o Max). Pega el token de «claude setup-token».",
   codex: "Tu cuenta de ChatGPT. Ejecuta «codex login» en el PC y pulsa Conectar.",
-  opencode: "Pago por uso con tu clave de OpenRouter. Pon un límite de gasto mensual.",
+  opencode: "Con tu clave de OpenCode (Zen por uso o suscripción Go) o de OpenRouter. Pon un límite de gasto mensual.",
   antigravity: "Solo responde con texto (sin herramientas ni tus datos). Usa la sesión de Antigravity del PC.",
 };
 
@@ -31,7 +39,7 @@ function Puede({ p }: { p: Prov }) {
 /** Elegir y conectar el motor de IA. `onListo` lo usa el onboarding para seguir cuando el motor está conectado. */
 export function MotorCard({ onListo }: { onListo?: () => void }) {
   const e = useApi<Estado>("/instancia/motor");
-  const [clave, setClave] = useState("");
+  const [claves, setClaves] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cfg, setCfg] = useState<Config | null>(null);
@@ -80,13 +88,24 @@ export function MotorCard({ onListo }: { onListo?: () => void }) {
 
         {c.proveedor === "opencode" && (
           <div className="space-y-2 rounded-lg border border-border p-3">
-            <label className="block text-xs font-medium" htmlFor="or-key">Clave de OpenRouter</label>
-            <div className="flex gap-2">
-              <Input id="or-key" type="password" autoComplete="off" placeholder={elegido?.conectado ? "Guardada · escribe otra para cambiarla" : "sk-or-…"} value={clave} onChange={(x) => setClave(x.target.value)} />
-              <Button size="sm" disabled={busy || clave.length < 10} onClick={() => run(async () => { await api("/instancia/motor/openrouter/clave", { method: "PUT", body: JSON.stringify({ clave }) }); setClave(""); })}>Guardar</Button>
-            </div>
-            <p className="text-xs text-muted-foreground">Se guarda en el PC en un archivo que solo puede leer tu usuario (no en la base ni en el navegador). Solo la recibe el turno en curso y nunca se muestra ni se registra.</p>
-            <label className="flex items-center justify-between gap-3 text-xs" htmlFor="or-lim">Límite de gasto al mes (USD) · llevas {e.data.gasto_mes_openrouter.toFixed(2)} $
+            {CLAVES.map((k) => {
+              const puesta = !!elegido?.claves?.[k.id];
+              const v = claves[k.id] ?? "";
+              return (
+                <div key={k.id} className="space-y-1">
+                  <label className="flex items-center gap-2 text-xs font-medium" htmlFor={`clave-${k.id}`}>{k.nombre}
+                    <Badge variant={puesta ? "secondary" : "outline"}>{puesta ? "guardada" : "sin poner"}</Badge></label>
+                  <div className="flex gap-2">
+                    <Input id={`clave-${k.id}`} type="password" autoComplete="off" placeholder={puesta ? "Guardada · escribe otra para cambiarla" : k.placeholder} value={v} onChange={(x) => setClaves({ ...claves, [k.id]: x.target.value })} />
+                    <Button size="sm" disabled={busy || v.length < 10} onClick={() => run(async () => { await api(`/instancia/motor/${k.id}/clave`, { method: "PUT", body: JSON.stringify({ clave: v }) }); setClaves({ ...claves, [k.id]: "" }); })}>Guardar</Button>
+                    {puesta && <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(() => api(`/instancia/motor/${k.id}/clave`, { method: "DELETE" }))}>Quitar</Button>}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{k.ayuda}</p>
+                </div>
+              );
+            })}
+            <p className="text-xs text-muted-foreground">Se guardan en el PC, en archivos que solo puede leer tu usuario (no en la base ni en el navegador). Cada turno recibe solo la clave que necesita su modelo, y nunca se muestran ni se registran.</p>
+            <label className="flex items-center justify-between gap-3 text-xs" htmlFor="or-lim">Límite de gasto al mes (USD; la suscripción Go no cuenta) · llevas {e.data.gasto_mes_openrouter.toFixed(2)} $
               <Input id="or-lim" type="number" min={0} step={1} className="w-24" value={c.limite_mensual_usd} onChange={(x) => setCfg({ ...c, limite_mensual_usd: Number(x.target.value) })} />
             </label>
           </div>
@@ -112,7 +131,7 @@ export function MotorCard({ onListo }: { onListo?: () => void }) {
                 {c.proveedor === "claude"
                   ? <select className="h-8 flex-1 rounded-md border border-border bg-background px-2" value={c.modelos.claude?.[k] ?? "sonnet"} onChange={(x) => setModelo(k, x.target.value)}>
                       <option value="sonnet">Sonnet</option><option value="opus">Opus</option></select>
-                  : <Input className="h-8 flex-1" placeholder={c.proveedor === "opencode" ? "openrouter/proveedor/modelo" : "modelo"} value={c.modelos[c.proveedor]?.[k] ?? ""} onChange={(x) => setModelo(k, x.target.value)} />}
+                  : <Input className="h-8 flex-1" placeholder={c.proveedor === "opencode" ? "opencode-go/…, opencode/… u openrouter/…" : "modelo"} value={c.modelos[c.proveedor]?.[k] ?? ""} onChange={(x) => setModelo(k, x.target.value)} />}
               </label>
             ))}
           </fieldset>

@@ -106,7 +106,12 @@ def test_turno_del_constructor_sin_secretos_del_panel(vp, monkeypatch):
     assert env["CLAUDE_CODE_OAUTH_TOKEN"] == "token-de-prueba-claude" and env["HOME"] == str(cons.HOME)
     assert env["CC_VISTA_PREVIA"] == "1" and env["CC_DATA_DIR"].startswith(str(vp.C.DATOS_VP))
     assert "CC_HOSTAGENT_TOKEN" not in env and "CC_BACKUP_KEY" not in env
-    argv, env = cons.preparar_cli({"proveedor": "opencode", "modelo": "x/y", "resume": None}, "instrucciones")
-    assert env["OPENROUTER_API_KEY"] == "clave-de-prueba-openrouter" and argv[0] == "/opt/opencode"
+    argv, env = cons.preparar_cli({"proveedor": "opencode", "modelo": "openrouter/x/y", "resume": None}, "instrucciones")
+    assert env["OPENROUTER_API_KEY"] == "clave-de-prueba-openrouter" and argv[0] == "/opt/opencode" and "OPENCODE_API_KEY" not in env
+    with pytest.raises(vp.Fallo, match="clave de OpenCode"):  # Go sin su clave: no usa la de OpenRouter
+        cons.preparar_cli({"proveedor": "opencode", "modelo": "opencode-go/kimi-k3", "resume": None}, "")
+    (cons.PROV_DIR / "opencode.key").write_text("clave-de-prueba-opencode")
+    argv, env = cons.preparar_cli({"proveedor": "opencode", "modelo": "opencode-go/kimi-k3", "resume": None}, "")
+    assert env["OPENCODE_API_KEY"] == "clave-de-prueba-opencode" and "OPENROUTER_API_KEY" not in env
     with pytest.raises(vp.Fallo):
         cons.preparar_cli({"proveedor": "antigravity", "modelo": "", "resume": None}, "")

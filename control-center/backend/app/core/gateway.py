@@ -48,6 +48,21 @@ def _context(args: dict, db: Session):
     return memory.context_pack(db, str(args.get("q", "")))
 
 
+@tool("help.search")
+def _help_search(args: dict, db: Session):
+    from . import ayuda
+    return ayuda.buscar(str(args.get("q", "")))
+
+
+@tool("help.read")
+def _help_read(args: dict, db: Session):
+    """Sin `doc`: el índice (documentos y apartados). Con `doc` (y `apartado`): ese texto."""
+    from . import ayuda
+    if not args.get("doc"):
+        return ayuda.indice()
+    return ayuda.leer(str(args["doc"]), str(args.get("apartado") or ""))
+
+
 @tool("finance.summary")
 def _finance_summary(args: dict, db: Session):
     from datetime import date

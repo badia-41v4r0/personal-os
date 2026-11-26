@@ -110,7 +110,7 @@ def _session(db, spec: orchestrator.Specialist, day: str, text: str, sid: str | 
         route = model_gateway.Route("antigravity-flash", model_gateway.PROVIDERS["antigravity-flash"].models[spec.profile], "Motor elegido en Ajustes")
     elif motor.config().get("relevo", True):
         route = model_gateway.route(spec.profile, usage, sensitive=spec.sensitive)
-    else:  # sin relevo: siempre el motor elegido (sessions.turno decide Claude, Codex u OpenRouter)
+    else:  # sin relevo: siempre el motor elegido (sessions.turno decide Claude, Codex u OpenCode)
         route = model_gateway.Route("claude", "opus" if spec.profile == "deep" else "sonnet", "Relevo desactivado")
     if route.provider == "claude":
         model = route.model

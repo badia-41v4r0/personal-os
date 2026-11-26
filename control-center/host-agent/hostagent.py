@@ -572,7 +572,7 @@ async def session_run(request: Request, body: dict = Body(...)):
         argv = sesiones.docker_argv(ROOT, req, dirs)
     else:
         try:
-            secretos = proveedores_credenciales(prov)
+            secretos = proveedores_credenciales(prov, req["model"])
         except ValueError as e:
             if gateway is not None:
                 gateway.close()
@@ -653,17 +653,22 @@ def _prov_file(nombre: str) -> Path:
     return PROV_DIR / nombre
 
 
-def proveedores_credenciales(prov: str) -> dict:
+NOMBRE_SERVICIO = {"opencode": "OpenCode", "openrouter": "OpenRouter"}
+
+
+def proveedores_credenciales(prov: str, modelo: str = "") -> dict:
+    """Credenciales de un turno. En OpenCode, solo la del servicio del modelo (opencode/… u openrouter/…)."""
     if prov == "codex":
         f = _prov_file("codex-auth.json")
         if not f.exists():
             raise ValueError("Codex no está conectado: Ajustes → Motor de IA → Conectar Codex")
         return {"codex_auth": f.read_text()}
     if prov == "opencode":
-        f = _prov_file("openrouter.key")
+        servicio = proveedores.servicio_opencode(modelo)
+        f = _prov_file(proveedores.CLAVES_OPENCODE[servicio][0])
         if not f.exists():
-            raise ValueError("Falta la clave de OpenRouter: Ajustes → Motor de IA")
-        return {"openrouter_key": f.read_text().strip()}
+            raise ValueError(f"Falta la clave de {NOMBRE_SERVICIO[servicio]} para el modelo {modelo}: Ajustes → Motor de IA")
+        return {f"{servicio}_key": f.read_text().strip()}
     return {}
 
 
@@ -715,7 +720,8 @@ def _prov_estado(prov: str) -> dict:
     elif prov == "codex":
         conectado = _prov_file("codex-auth.json").exists()
     elif prov == "opencode":
-        conectado = _prov_file("openrouter.key").exists()
+        claves = {k: _prov_file(f).exists() for k, (f, _) in proveedores.CLAVES_OPENCODE.items()}
+        return {"id": prov, "conectado": any(claves.values()), "claves": claves, **cap}
     else:  # antigravity: la sesión del usuario en el PC (solo modo consulta)
         conectado = shutil.which("antigravity") is not None or Path.home().joinpath(".local/share/mise/installs/antigravity-cli").exists()
     return {"id": prov, "conectado": conectado, **cap}
@@ -726,26 +732,47 @@ def proveedores_lista():
     return [_prov_estado(p) for p in proveedores.PROVEEDORES]
 
 
-@app.put("/v1/proveedores/openrouter/clave", dependencies=[Depends(auth)])
-def proveedores_clave(request: Request, clave: str = Body(..., embed=True)):
+# Formato de cada clave: OpenRouter empieza por sk-or-; la de OpenCode (opencode.ai, Zen y Go) no tiene uno fijo
+FORMATO_CLAVE = {"openrouter": re.compile(r"sk-or-[A-Za-z0-9_-]{20,200}"), "opencode": re.compile(r"(?!sk-or-)[A-Za-z0-9_-]{20,200}")}
+AYUDA_CLAVE = {"openrouter": "Eso no parece una clave de OpenRouter (empieza por sk-or-)",
+               "opencode": "Eso no parece una clave de OpenCode (se crea en opencode.ai; si empieza por sk-or-, es de OpenRouter)"}
+
+
+@app.put("/v1/proveedores/{servicio}/clave", dependencies=[Depends(auth)])
+def proveedores_clave(request: Request, servicio: str, clave: str = Body(..., embed=True)):
+    if servicio not in proveedores.CLAVES_OPENCODE:
+        raise HTTPException(404, "Ese servicio no usa clave")
     clave = clave.strip()
-    if not re.fullmatch(r"sk-or-[A-Za-z0-9_-]{20,200}", clave):
-        _audit(request, "proveedores.clave", "denied", proveedor="openrouter")
-        raise HTTPException(422, "Eso no parece una clave de OpenRouter (empieza por sk-or-)")
+    if not FORMATO_CLAVE[servicio].fullmatch(clave):
+        _audit(request, "proveedores.clave", "denied", proveedor=servicio)
+        raise HTTPException(422, AYUDA_CLAVE[servicio])
     PROV_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
-    f = _prov_file("openrouter.key")
-    f.write_text(clave)
-    f.chmod(0o600)
-    _audit(request, "proveedores.clave", "ok", proveedor="openrouter")  # nunca la clave
+    f = _prov_file(proveedores.CLAVES_OPENCODE[servicio][0])
+    tmp = f.with_suffix(".tmp")
+    tmp.touch(mode=0o600)
+    tmp.chmod(0o600)  # por si quedó uno de antes con otros permisos
+    tmp.write_text(clave)
+    tmp.replace(f)
+    _audit(request, "proveedores.clave", "ok", proveedor=servicio)  # nunca la clave
+    return _prov_estado("opencode")
+
+
+@app.delete("/v1/proveedores/{servicio}/clave", dependencies=[Depends(auth)])
+def proveedores_clave_quitar(request: Request, servicio: str):
+    if servicio not in proveedores.CLAVES_OPENCODE:
+        raise HTTPException(404, "Ese servicio no usa clave")
+    _prov_file(proveedores.CLAVES_OPENCODE[servicio][0]).unlink(missing_ok=True)
+    _audit(request, "proveedores.desconectar", "ok", proveedor=servicio)
     return _prov_estado("opencode")
 
 
 @app.delete("/v1/proveedores/{prov}", dependencies=[Depends(auth)])
 def proveedores_desconectar(request: Request, prov: str):
-    archivo = {"opencode": "openrouter.key", "codex": "codex-auth.json"}.get(prov)
-    if not archivo:
+    archivos = {"opencode": [f for f, _ in proveedores.CLAVES_OPENCODE.values()], "codex": ["codex-auth.json"]}.get(prov)
+    if not archivos:
         raise HTTPException(404, "Ese proveedor no guarda credenciales aquí")
-    _prov_file(archivo).unlink(missing_ok=True)
+    for archivo in archivos:
+        _prov_file(archivo).unlink(missing_ok=True)
     _audit(request, "proveedores.desconectar", "ok", proveedor=prov)
     return _prov_estado(prov)
 

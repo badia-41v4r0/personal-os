@@ -29,7 +29,7 @@ class Specialist:
 
 
 COMMON_TOOLS = ("memory.search", "memory.facts", "memory.context", "tasks.list", "agenda.days", "uni.deadlines", "gym.summary")
-JARVIS_TOOLS = COMMON_TOOLS + ("mail.recent", "mail.read", "ocio.list", "ocio.search")
+JARVIS_TOOLS = COMMON_TOOLS + ("mail.recent", "mail.read", "ocio.list", "ocio.search", "help.search", "help.read")
 JARVIS_CAPS = ("memory.fact.propose", "task.create", "task.done", "task.reschedule", "task.edit", "task.delete", "uni.check", "note.add", "gym.register", "gym.pause.log", "health.log", "career.application.create",
                "calendar.create", "calendar.move", "calendar.delete", "mail.draft", "ocio.add", "ocio.update",
                "day.close", "encargo.create", "ayudante.create", "repo.create", "video.analyze")

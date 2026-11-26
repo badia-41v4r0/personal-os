@@ -98,16 +98,21 @@ def preparar_cli(req: dict, sistema: str) -> tuple[list[str], dict]:
         return [exe, *argv[1:]], env
     if prov == "opencode":
         exe = binario("opencode")
-        clave = PROV_DIR / "openrouter.key"
+        try:
+            servicio = proveedores.servicio_opencode(modelo)
+        except ValueError as e:
+            raise C.Fallo(str(e)) from None
+        archivo, var = proveedores.CLAVES_OPENCODE[servicio]
+        clave = PROV_DIR / archivo
         if not exe or not clave.exists():
-            raise C.Fallo("OpenCode no está instalado o falta la clave de OpenRouter: Ajustes → Motor de IA")
+            raise C.Fallo(f"OpenCode no está instalado o falta la clave de {'OpenRouter' if servicio == 'openrouter' else 'OpenCode'}: Ajustes → Motor de IA")
         d = HOME / ".config/opencode"
         d.mkdir(parents=True, exist_ok=True, mode=0o700)
         (HOME / "instrucciones.md").write_text(sistema, encoding="utf-8")
         cfg = proveedores.opencode_config({}, "execute", str(HOME / "instrucciones.md"))
         cfg["permission"] = {"bash": "allow", "edit": "allow", "webfetch": "allow"}
         (d / "opencode.json").write_text(json.dumps(cfg, indent=1), encoding="utf-8")
-        env["OPENROUTER_API_KEY"] = clave.read_text().strip()
+        env[var] = clave.read_text().strip()  # solo la del servicio de este modelo
         argv = proveedores.argv("opencode", modelo, resume)
         return [exe, *argv[1:]], env
     raise C.Fallo(f"El Constructor no puede usar {prov}: elige Claude Code, Codex u OpenCode en Ajustes → Motor de IA")

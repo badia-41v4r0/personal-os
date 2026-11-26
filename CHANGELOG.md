@@ -6,6 +6,25 @@ sea 0.x, una versión menor (0.**2**.0) puede traer cambios que pidan hacer algo
 
 ## [Sin publicar]
 
+## [0.1.4] — 2026-11-26
+
+### Novedades
+
+- **Tu asistente da soporte del Personal OS.** En Inicio, pregúntale cómo usar o configurar algo («¿cómo conecto
+  OpenCode?»): busca en la documentación de uso (lecturas `help.search` y `help.read`, solo guías para el usuario) y
+  responde con los pasos y la guía de la que salen, en lugar de improvisar.
+- **OpenCode como motor propio, no solo OpenRouter.** En Ajustes → Motor de IA, el motor «OpenCode» acepta la clave de
+  opencode.ai: modelos `opencode-go/…` (suscripción OpenCode Go) y `opencode/…` (OpenCode Zen, por uso). La clave de
+  OpenRouter sigue valiendo para `openrouter/…` y ahora es opcional. Cada turno recibe solo la clave del servicio de
+  su modelo; cada clave se puede quitar por separado. La suscripción Go no cuenta para el límite de gasto mensual.
+- **Guía de motores de IA reescrita** (`docs/motores-de-ia.md`): paso a paso por motor, qué modelos poner, el límite de
+  gasto y una tabla de errores frecuentes.
+
+### Al actualizar
+
+- Si usabas OpenRouter, nada que hacer: tu clave y tus modelos `openrouter/…` siguen igual. Los modelos de OpenCode
+  deben llevar prefijo (`opencode/`, `opencode-go/` u `openrouter/`); uno sin prefijo da un error que lo explica.
+
 ## [0.1.3] — 2026-11-26
 
 ### Novedades

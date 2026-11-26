@@ -92,7 +92,7 @@ Solo el que vayas a usar (se puede cambiar después):
 |---|---|---|
 | Claude Code | `npm install -g @anthropic-ai/claude-code` | `claude setup-token`: el token se pega en el panel (paso 6) |
 | Codex | `npm install -g @openai/codex` | `codex login`, y después «Conectar Codex» en el panel |
-| OpenRouter | `npm install -g opencode-ai` | Tu clave de openrouter.ai, en el panel |
+| OpenCode | `npm install -g opencode-ai` | Tu clave de opencode.ai (Go o Zen) u openrouter.ai, en el panel |
 
 La imagen de Docker trae las tres CLI. Las del PC solo sirven para iniciar sesión.
 

@@ -165,7 +165,8 @@ async def motor_estado():
     with scope() as db:
         gasto = motor.gasto_mes(db)
     return {"config": motor.config(), "elegido": motor.elegido(), "gasto_mes_openrouter": gasto, "limite": motor.limite(), "aviso": aviso,
-            "proveedores": [{"id": p, "nombre": motor.NOMBRES[p], **motor.CAPACIDADES[p], "conectado": bool(estado.get(p, {}).get("conectado"))}
+            "proveedores": [{"id": p, "nombre": motor.NOMBRES[p], **motor.CAPACIDADES[p], "conectado": bool(estado.get(p, {}).get("conectado")),
+                             "claves": estado.get(p, {}).get("claves") or {}}
                             for p in motor.PROVEEDORES]}
 
 
@@ -173,11 +174,26 @@ class ClaveIn(BaseModel):
     clave: str = Field(min_length=10, max_length=300)
 
 
-@router.put("/motor/openrouter/clave")
-async def motor_clave(body: ClaveIn, p: Principal = Depends(require_admin)):
-    r = await hostagent.call("/v1/proveedores/openrouter/clave", method="PUT", json={"clave": body.clave})
+SERVICIOS_CLAVE = ("opencode", "openrouter")  # las dos claves que puede usar el motor OpenCode
+
+
+@router.put("/motor/{servicio}/clave")
+async def motor_clave(servicio: str, body: ClaveIn, p: Principal = Depends(require_admin)):
+    if servicio not in SERVICIOS_CLAVE:
+        raise HTTPException(404, "Ese servicio no usa clave")
+    r = await hostagent.call(f"/v1/proveedores/{servicio}/clave", method="PUT", json={"clave": body.clave})
     with session_scope() as db:
-        events.audit(db, p.name, "motor.clave", "openrouter")  # nunca la clave
+        events.audit(db, p.name, "motor.clave", servicio)  # nunca la clave
+    return r
+
+
+@router.delete("/motor/{servicio}/clave")
+async def motor_clave_quitar(servicio: str, p: Principal = Depends(require_admin)):
+    if servicio not in SERVICIOS_CLAVE:
+        raise HTTPException(404, "Ese servicio no usa clave")
+    r = await hostagent.call(f"/v1/proveedores/{servicio}/clave", method="DELETE")
+    with session_scope() as db:
+        events.audit(db, p.name, "motor.desconectar", servicio)
     return r
 
 

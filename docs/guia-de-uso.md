@@ -32,6 +32,8 @@ Telegram queda para los avisos. Su sesión y las sesiones independientes están 
 - **Tus datos de verdad viven en la base** del panel. Algunas notas de la vault son copias que el sistema rehace (tareas,
   registro del gym, diario, tabla de candidaturas). Lo demás de la vault son tus documentos.
 - **Si falta algo por configurar, Inicio te lo dice** («Te falta por configurar»), con un enlace directo a cada sitio.
+- **Pregúntale a tu asistente cómo se usa algo** («¿cómo conecto OpenCode?», «¿qué hace el Constructor?»). En Inicio
+  consulta esta documentación antes de responder y te dice de qué guía saca los pasos.
 
 ## Hoy
 
@@ -95,7 +97,7 @@ nace como propuesta y lo confirmas tú.
 | Sección | Qué hay |
 |---|---|
 | Tú y tu cuenta | Usuario y contraseña del panel, cómo te llama tu asistente y cómo se llama |
-| Motor de IA | Claude, Codex, OpenRouter o Antigravity, con su token o clave (ver [motores-de-ia.md](motores-de-ia.md)) |
+| Motor de IA | Claude, Codex, OpenCode (Go, Zen u OpenRouter) o Antigravity, con su token o clave (ver [motores-de-ia.md](motores-de-ia.md)) |
 | Módulos | Activar y desactivar apartados, y «Configurar con su asistente» |
 | Conexiones | Google, GitHub, campus, Hevy, Telegram y los avisos en el móvil: estado de cada una y cómo conectarla |
 | Automatizaciones | Horario de las rutinas (briefing, cierre, revisión semanal, recopilación) |

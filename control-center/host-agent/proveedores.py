@@ -33,6 +33,13 @@ DOMINIOS = {
     "codex": ("chatgpt.com", "api.openai.com", "auth.openai.com", "ab.chatgpt.com"),
     "opencode": ("openrouter.ai", "opencode.ai", "api.opencode.ai", "models.dev"),
 }
+# OpenCode habla con varios servicios; el prefijo del modelo dice cuál y solo esa clave entra en el turno.
+# opencode/… = OpenCode Zen (pago por uso) · opencode-go/… = suscripción OpenCode Go · openrouter/… = OpenRouter
+CLAVES_OPENCODE = {  # servicio: (archivo en data/proveedores, variable que lee la CLI)
+    "opencode": ("opencode.key", "OPENCODE_API_KEY"),
+    "openrouter": ("openrouter.key", "OPENROUTER_API_KEY"),
+}
+SERVICIO_DE_PREFIJO = {"opencode": "opencode", "opencode-go": "opencode", "openrouter": "openrouter"}
 MODELO_RE = re.compile(r"^[\w][\w./:#@+-]{0,120}$")
 RESUME_RE = {
     "claude": re.compile(r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"),
@@ -51,6 +58,14 @@ def valida_modelo(proveedor: str, modelo: str) -> str:
     if not MODELO_RE.match(modelo or ""):
         raise ValueError("Modelo no válido")
     return modelo
+
+
+def servicio_opencode(modelo: str) -> str:
+    """Qué clave necesita un modelo de OpenCode («opencode» u «openrouter»), por su prefijo."""
+    pref = (modelo or "").split("/", 1)[0]
+    if "/" not in (modelo or "") or pref not in SERVICIO_DE_PREFIJO:
+        raise ValueError("Modelo de OpenCode no válido: usa opencode/…, opencode-go/… u openrouter/… (Ajustes → Motor de IA)")
+    return SERVICIO_DE_PREFIJO[pref]
 
 
 def valida_resume(proveedor: str, resume) -> str | None:
@@ -85,14 +100,18 @@ def codex_config(servers: dict, instrucciones: str | None) -> str:
 
 
 def opencode_config(servers: dict, nivel: str, instrucciones_path: str | None) -> dict:
-    """opencode.json de la sesión: sin terminal, edición solo si el nivel lo permite, y la clave de OpenRouter por
-    entorno (`{env:OPENROUTER_API_KEY}`), nunca escrita en el archivo."""
+    """opencode.json de la sesión: sin terminal, edición solo si el nivel lo permite, y las claves por entorno
+    (`{env:…}`), nunca escritas en el archivo. Solo la del servicio del modelo llega al turno; las demás quedan vacías."""
     permiso_editar = "allow" if nivel in ("propose", "execute") else "deny"
     cfg = {
         "$schema": "https://opencode.ai/config.json",
         "autoupdate": False, "share": "disabled",
         "permission": {"bash": "deny", "edit": permiso_editar, "webfetch": "deny"},
-        "provider": {"openrouter": {"options": {"apiKey": "{env:OPENROUTER_API_KEY}"}}},
+        "provider": {
+            "opencode": {"options": {"apiKey": "{env:OPENCODE_API_KEY}"}},
+            "opencode-go": {"options": {"apiKey": "{env:OPENCODE_API_KEY}"}},
+            "openrouter": {"options": {"apiKey": "{env:OPENROUTER_API_KEY}"}},
+        },
         "mcp": {n: {"type": "local", "command": [s["command"], *s["args"]], "enabled": True} for n, s in _mcp_servers(servers).items()},
     }
     if instrucciones_path:
@@ -121,8 +140,9 @@ def preparar_home(proveedor: str, home: Path, servers: dict, nivel: str, sistema
         d = home / ".config/opencode"
         d.mkdir(parents=True, exist_ok=True)
         (d / "opencode.json").write_text(json.dumps(opencode_config(servers, nivel, instr), indent=1), encoding="utf-8")
-        if credenciales.get("openrouter_key"):
-            env["OPENROUTER_API_KEY"] = credenciales["openrouter_key"]
+        for servicio, (_, var) in CLAVES_OPENCODE.items():
+            if credenciales.get(f"{servicio}_key"):
+                env[var] = credenciales[f"{servicio}_key"]
     return env
 
 

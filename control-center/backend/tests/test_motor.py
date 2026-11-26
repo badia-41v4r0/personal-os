@@ -102,3 +102,39 @@ def test_motor_estado_y_clave(client, auth, monkeypatch):
     with session_scope() as db:
         assert not any("sk-or" in json.dumps(a.detail or {}) for a in db.scalars(select(AuditLog)))
     assert client.put("/api/v1/instancia/config/ia", headers=auth, json={"proveedor": "gpt-casero"}).status_code == 422
+    r = client.put("/api/v1/instancia/motor/opencode/clave", headers=auth, json={"clave": "oc_sk_abcdefghijklmnopqrstuvwxyz"})
+    assert r.status_code == 200 and vistas[-1][0] == "/v1/proveedores/opencode/clave"
+    assert client.delete("/api/v1/instancia/motor/opencode/clave", headers=auth).status_code == 200 and vistas[-1][1] == "DELETE"
+    assert client.put("/api/v1/instancia/motor/otra/clave", headers=auth, json={"clave": "x" * 20}).status_code == 404
+
+
+def test_opencode_go_no_cuenta_para_el_limite(client, auth, monkeypatch, config_instancia):
+    """La suscripción Go es tarifa plana: ni suma al gasto ni la para el límite."""
+    from app import sessions
+    from app.db import session_scope, utcnow
+    from app.models import AgentRun, ChatSession
+    _ia(config_instancia, proveedor="opencode", modelos={"opencode": {"standard": "opencode-go/kimi-k3"}}, limite_mensual_usd=1)
+    with session_scope() as db:
+        db.add(ChatSession(id="viejo2", kind="independent", name="x", workdir="x", model="sonnet", permissions={}))
+        db.flush()
+        db.add(AgentRun(id="r-go", session_id="viejo2", status="done", started_at=utcnow(), usage={"provider": "opencode", "model": "opencode-go/kimi-k3", "cost_usd": 3}))
+        db.add(AgentRun(id="r-zen", session_id="viejo2", status="done", started_at=utcnow(), usage={"provider": "opencode", "model": "opencode/glm-5", "cost_usd": 2}))
+        db.flush()
+        assert motor.gasto_mes(db) == 2  # solo Zen
+    calls = []
+    monkeypatch.setattr(sessions, "hostagent_stream", fake_stream(calls))
+    s = new(client, auth)
+    client.post(f"/api/v1/sessions/{s['id']}/messages", json={"text": "hola"}, headers=auth)
+    wait(client, s["id"], 1)
+    assert calls and calls[0]["model"] == "opencode-go/kimi-k3"  # con Zen ya pasado del límite, Go sigue
+
+
+def test_opencode_modelo_sin_prefijo_no_arranca(client, auth, monkeypatch, config_instancia):
+    from app import sessions
+    _ia(config_instancia, proveedor="opencode", modelos={"opencode": {"standard": "kimi-k3"}})
+    calls = []
+    monkeypatch.setattr(sessions, "hostagent_stream", fake_stream(calls))
+    s = new(client, auth)
+    client.post(f"/api/v1/sessions/{s['id']}/messages", json={"text": "hola"}, headers=auth)
+    runs = wait(client, s["id"], 1)
+    assert calls == [] and "opencode-go/" in runs[0]["error"]
