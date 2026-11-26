@@ -15,8 +15,8 @@ def vp(tmp_path, monkeypatch):
     root = tmp_path / "pos"
     cc = root / "data/control-center"
     (cc / "proveedores").mkdir(parents=True)
-    (cc / "proveedores/openrouter.key").write_text("sk-or-secreta")
-    (cc / "secrets.env").write_text("CC_HOSTAGENT_TOKEN=" + "h" * 40 + "\nCC_BACKUP_KEY=clave\nCC_ALLOWED_ORIGINS=http://127.0.0.1:8770\nCC_TMDB_TOKEN=tmdb\n")
+    (cc / "proveedores/openrouter.key").write_text("clave-de-prueba-openrouter")
+    (cc / "secrets.env").write_text("CC_HOSTAGENT_TOKEN=" + "h" * 40 + "\nCC_BACKUP_KEY=copias-de-prueba\nCC_ALLOWED_ORIGINS=http://127.0.0.1:8770\nCC_TMDB_TOKEN=tmdb\n")
     (cc / "secrets.env.bak-1").write_text("viejo")
     (cc / "vapid.pem").write_text("privada")
     (cc / "backups/x").mkdir(parents=True)
@@ -31,7 +31,7 @@ def vp(tmp_path, monkeypatch):
     (root / "data/config/banco.json").write_text('{"session_id": "secreto"}')
     (root / "Jarvis-Vault/Jarvis").mkdir(parents=True)
     (root / "Jarvis-Vault/Jarvis/nota.md").write_text("nota")
-    (root / ".env").write_text("POS_INSTANCE=pruebacc\nPOS_PORT=59990\nCLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat-secreto\n")
+    (root / ".env").write_text("POS_INSTANCE=pruebacc\nPOS_PORT=59990\nCLAUDE_CODE_OAUTH_TOKEN=token-de-prueba-claude\n")
     monkeypatch.setenv("POS_ROOT", str(root))
     monkeypatch.setenv("POS_INSTANCE", "pruebacc")
     for k in ("CC_DB_URL", "CC_DATA_DIR", "CC_VAULT", "POS_CONFIG_DIR"):
@@ -50,8 +50,9 @@ def test_copia_de_datos_sin_secretos(vp):
     assert (d / "vault/Jarvis/nota.md").read_text() == "nota"
     assert (d / "config/modulos.json").exists() and not (d / "config/banco.json").exists()
     assert (d / "control-center/ocio/w92/a.jpg").exists() and (d / "control-center/fuente-gym-bd").exists()
-    for secreto in ("secrets.env", "secrets.env.bak-1", "vapid.pem", "proveedores", "backups"):
-        assert not (d / "control-center" / secreto).exists(), secreto
+    assert not list((d / "control-center").glob("secrets*"))  # ni el .env de secretos ni sus copias
+    for privado in ("vapid.pem", "proveedores", "backups"):
+        assert not (d / "control-center" / privado).exists(), privado
     # escribir en la copia no toca lo real
     with sqlite3.connect(d / "control-center/cc.db") as c:
         c.execute("update t set x = 'vista previa'")
@@ -65,8 +66,8 @@ def test_entorno_limpio(vp):
     assert env["CC_DATA_DIR"].startswith(str(vp.C.DATOS_VP)) and env["CC_VAULT"].startswith(str(vp.C.DATOS_VP))
     assert env["CC_ALLOWED_ORIGINS"] == "http://127.0.0.1:8770"
     todo = " ".join(env.values())
-    for secreto in ("clave", "tmdb", "sk-ant-oat-secreto", "h" * 40):
-        assert secreto not in todo
+    for privado in ("copias-de-prueba", "tmdb", "token-de-prueba-claude", "h" * 40):
+        assert privado not in todo
 
 
 def test_jaula_oculta_la_instalacion(vp):
@@ -102,10 +103,10 @@ def test_turno_del_constructor_sin_secretos_del_panel(vp, monkeypatch):
     monkeypatch.setattr(cons, "binario", lambda n: f"/opt/{n}")
     argv, env = cons.preparar_cli({"proveedor": "claude", "modelo": "opus", "resume": None}, "instrucciones")
     assert argv[0] == "/opt/claude" and "--dangerously-skip-permissions" in argv and argv[argv.index("--model") + 1] == "opus"
-    assert env["CLAUDE_CODE_OAUTH_TOKEN"] == "sk-ant-oat-secreto" and env["HOME"] == str(cons.HOME)
+    assert env["CLAUDE_CODE_OAUTH_TOKEN"] == "token-de-prueba-claude" and env["HOME"] == str(cons.HOME)
     assert env["CC_VISTA_PREVIA"] == "1" and env["CC_DATA_DIR"].startswith(str(vp.C.DATOS_VP))
     assert "CC_HOSTAGENT_TOKEN" not in env and "CC_BACKUP_KEY" not in env
     argv, env = cons.preparar_cli({"proveedor": "opencode", "modelo": "x/y", "resume": None}, "instrucciones")
-    assert env["OPENROUTER_API_KEY"] == "sk-or-secreta" and argv[0] == "/opt/opencode"
+    assert env["OPENROUTER_API_KEY"] == "clave-de-prueba-openrouter" and argv[0] == "/opt/opencode"
     with pytest.raises(vp.Fallo):
         cons.preparar_cli({"proveedor": "antigravity", "modelo": "", "resume": None}, "")
